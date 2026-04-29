@@ -1,0 +1,16 @@
+System Requirements
+ CDR Collection
+ Decoding/Encoding
+ Filtering
+ Conversion
+ Validation
+ Record Enrichment (Using Complex Reference Data)
+ Duplicate Record Detection
+ Aggregation and Correlation
+ Consolidation
+ Buffering
+ Sorting
+ Downstream Format Mapping
+ Header and Trailer generation
+ Downstream Distribution
+ Error Messaging and Alarms
