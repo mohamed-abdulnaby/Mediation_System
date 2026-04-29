@@ -154,6 +154,124 @@ ASN.1 CDR Input Files
 CSV Output Files (to downstream)
 ```
 
+## Infrastructure Architecture
+
+### Container Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        Docker Compose Network                               │
+│                         mediation-network (bridge)                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐       │
+│   │ msc-simulator   │   │ smsc-simulator  │   │ pgw-simulator   │       │
+│   │ (Container)      │   │ (Container)     │   │ (Container)     │       │
+│   │                 │   │                 │   │                 │       │
+│   │ - CDR Generator │   │ - CDR Generator │   │ - CDR Generator │       │
+│   │ - FTP Client    │   │ - FTP Client    │   │ - FTP Client    │       │
+│   │ Port: 8085      │   │ Port: 8086      │   │ Port: 8087      │       │
+│   └────────┬────────┘   └────────┬────────┘   └────────┬────────┘       │
+│            │ FTP Push            │ FTP Push            │ FTP Push         │
+│            │                     │                     │                   │
+│            └─────────────────────┼─────────────────────┘                  │
+│                                  │                                          │
+│                                  ▼                                          │
+│                    ┌─────────────────────┐                                │
+│                    │   ftp-server        │                                │
+│                    │   (vsftpd)          │                                │
+│                    │                     │                                │
+│                    │ /data/cdr-input/    │                                │
+│                    │ Port: 21            │                                │
+│                    └─────────┬───────────┘                                │
+│                              │                                              │
+│                              │ FTP Watch (file detection)                 │
+│                              ▼                                              │
+│   ┌─────────────────┐       │        ┌─────────────────┐                  │
+│   │ csv-storage     │◄──────┴────────│ mediation-app   │                  │
+│   │ (Container)     │                 │ (Container)     │                  │
+│   │                 │                 │                 │                  │
+│   │ /data/output/   │◄───────────────│ - FTP Client    │                  │
+│   │ (CSV results)   │   CSV Output    │ - Decoder       │                  │
+│   │ Port: 8081      │                 │ - Processing    │                  │
+│   └─────────────────┘                 │ Port: 8080      │                  │
+│                                       └─────────────────┘                  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Container Configuration
+
+| Container | Hostname | Internal Port | FTP Port | Purpose | CDR Type |
+|-----------|----------|---------------|----------|---------|----------|
+| msc-simulator | msc-simulator | 8085 | 2121 | MSC Mock + FTP push | Voice CDR |
+| smsc-simulator | smsc-simulator | 8086 | 2122 | SMSC Mock + FTP push | SMS CDR |
+| pgw-simulator | pgw-simulator | 8087 | 2123 | PGW Mock + FTP push | Data CDR |
+| ftp-server | ftp-server | 21 | 21 | Central FTP server | File collection |
+| mediation-app | mediation-app | 8080 | - | Mediation system | Process CDRs |
+| csv-storage | csv-storage | 80 | - | Output storage | CSV results HTTP |
+
+### Data Flow
+
+```
+1. Every 1 minute (configurable):
+   ┌────────────────────────────────────────────────────────────────┐
+   │  msc-simulator  → generates 50 voice CDR records             │
+   │                  → encodes to ASN.1 BER                       │
+   │                  → filename: CDR_<ts>_MSC_<seq>.asn           │
+   │                  → FTP push to ftp-server:/data/cdr-input/  │
+   └────────────────────────────────────────────────────────────────┘
+
+2. Each simulator pushes to FTP:
+   ┌────────────────────────────────────────────────────────────────┐
+   │  smsc-simulator → generates 50 SMS CDR records               │
+   │                  → filename: CDR_<ts>_SMSC_<seq>.asn          │
+   │                  → FTP push to ftp-server                     │
+   └────────────────────────────────────────────────────────────────┘
+
+3. ftp-server receives files in /data/cdr-input/
+
+4. mediation-app FTP watcher detects new files
+
+5. mediation-app pulls files and processes:
+   ┌────────────────────────────────────────────────────────────────┐
+   │  mediation-app                                                │
+   │  - Download new .asn files from FTP server                    │
+   │  - SourceDetector extracts source from filename              │
+   │  - CdrDecoder decodes ASN.1 BER                               │
+   │  - CdrValidator validates (source-specific)                   │
+   │  - Processing: Enrich → Dedupe → Aggregate → Sort            │
+   │  - CsvFormatter maps to CSV                                   │
+   │  - CdrDistributor writes to output                            │
+   └────────────────────────────────────────────────────────────────┘
+
+6. CSV output pushed to csv-storage container
+
+7. Downstream systems pull processed CSV files
+```
+
+### Processing Flow
+
+```
+Upstream (Push)          Mediation System           Downstream (Pull)
+     │                         │                          │
+     ▼                         ▼                          │
+┌─────────┐             ┌─────────────┐           ┌──────────┐
+│   MSC   │──FTP Push──▶│   FTP Server │◀──Pull───│ Billing  │
+│ (Voice) │             │ /cdr-input/  │          │ System   │
+└─────────┘             └──────┬───────┘           └──────────┘
+                               │
+┌─────────┐                   │
+│  SMSC   │──FTP Push─────────┤
+│  (SMS)  │                   │
+└─────────┘                   │
+                               │
+┌─────────┐                   │
+│  PGW    │──FTP Push─────────┘
+│  (Data) │
+└─────────┘
+```
+
 ## Input/Output Specifications
 
 ### Input
@@ -432,8 +550,16 @@ aggregation:
 mediation:
   input:
     directory: /data/input
-    file-pattern: "*.cdr"
+    file-pattern: "*.asn"
     watch-interval-ms: 5000
+  ftp:
+    host: ${FTP_HOST:-ftp-server}
+    port: ${FTP_PORT:-21}
+    username: ${FTP_USER:-cdruser}
+    password: ${FTP_PASS:-cdrpass}
+    remote-input-dir: ${FTP_INPUT_DIR:-/home/cdruser/files}
+    remote-output-dir: ${FTP_OUTPUT_DIR:-/home/cdruser/output}
+    poll-interval-ms: ${FTP_POLL_INTERVAL_MS:-5000}
   output:
     directory: /data/output
     file-prefix: "processed_cdr"
@@ -626,28 +752,108 @@ scrape_configs:
 </dependency>
 ```
 
-## Docker Compose Configuration
+## Docker Compose Configuration (Full Infrastructure)
 
 ```yaml
 version: '3.8'
 
 services:
-  mediation:
-    image: cdr-mediation:latest
-    container_name: cdr-mediation
+  # MSC Simulator - Generates Voice CDRs and pushes to FTP
+  msc-simulator:
+    build: ./simulators/msc-simulator
+    container_name: msc-simulator
+    environment:
+      - FTP_HOST=ftp-server
+      - FTP_PORT=21
+      - FTP_USER=cdruser
+      - FTP_PASS=cdrpass
+      - FTP_DEST_DIR=/home/cdruser/files
+      - CDR_INTERVAL_MS=60000
+      - CDR_RECORDS_PER_FILE=50
+      - SOURCE_TYPE=MSC
+    ports:
+      - "8085:8085"
+    networks:
+      - mediation-network
+
+  # SMSC Simulator - Generates SMS CDRs and pushes to FTP
+  smsc-simulator:
+    build: ./simulators/smsc-simulator
+    container_name: smsc-simulator
+    environment:
+      - FTP_HOST=ftp-server
+      - FTP_PORT=21
+      - FTP_USER=cdruser
+      - FTP_PASS=cdrpass
+      - FTP_DEST_DIR=/home/cdruser/files
+      - CDR_INTERVAL_MS=60000
+      - CDR_RECORDS_PER_FILE=50
+      - SOURCE_TYPE=SMSC
+    ports:
+      - "8086:8086"
+    networks:
+      - mediation-network
+
+  # PGW Simulator - Generates Data CDRs and pushes to FTP
+  pgw-simulator:
+    build: ./simulators/pgw-simulator
+    container_name: pgw-simulator
+    environment:
+      - FTP_HOST=ftp-server
+      - FTP_PORT=21
+      - FTP_USER=cdruser
+      - FTP_PASS=cdrpass
+      - FTP_DEST_DIR=/home/cdruser/files
+      - CDR_INTERVAL_MS=60000
+      - CDR_RECORDS_PER_FILE=50
+      - SOURCE_TYPE=PGW
+    ports:
+      - "8087:8087"
+    networks:
+      - mediation-network
+
+  # Central FTP Server - Collects CDR files from all sources
+  ftp-server:
+    image: faaster/vsftpd
+    container_name: ftp-server
+    environment:
+      - FTP_USER=cdruser
+      - FTP_PASS=cdrpass
+      - PASV_ADDRESS=ftp-server
+      - PASV_MIN_PORT=21100
+      - PASV_MAX_PORT=21110
+    volumes:
+      - cdr-input:/home/cdruser/files
+      - csv-output:/home/cdruser/output
+    ports:
+      - "21:21"
+      - "21100-21110:21100-21110"
+    networks:
+      - mediation-network
+
+  # Mediation Application - Processes CDRs
+  mediation-app:
+    build: .
+    container_name: mediation-app
     environment:
       - JAVA_OPTS=-Xmx2g -Xms512m
       - MEDIATION_CONFIG=/config/config.yaml
-      - LOGGING_CONFIG=/config/logging.properties
+      - FTP_HOST=ftp-server
+      - FTP_PORT=21
+      - FTP_USER=cdruser
+      - FTP_PASS=cdrpass
+      - FTP_INPUT_DIR=/home/cdruser/files
+      - FTP_OUTPUT_DIR=/home/cdruser/output
     volumes:
-      - ./data/input:/data/input
-      - ./data/output:/data/output
-      - ./data/error:/data/error
-      - ./data/reference:/data/reference
       - ./config:/config
+      - ./data/reference:/data/reference
       - mediation-logs:/var/log/mediation
     ports:
       - "8080:8080"
+    depends_on:
+      - ftp-server
+    networks:
+      - mediation-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
@@ -655,9 +861,65 @@ services:
       timeout: 10s
       retries: 3
 
+  # CSV Storage - Stores processed CSV output (accessible via HTTP)
+  csv-storage:
+    image: nginx:alpine
+    container_name: csv-storage
+    volumes:
+      - csv-output:/usr/share/nginx/html:ro
+    ports:
+      - "8081:80"
+    networks:
+      - mediation-network
+
+networks:
+  mediation-network:
+    driver: bridge
+
 volumes:
+  cdr-input:
+  csv-output:
   mediation-logs:
 ```
+
+### Container Directory Structure
+
+```
+/data/
+├── input/                     (Local input - mounted from host)
+├── output/                    (CSV output - mounted from host)
+├── error/                    (Error/dead-letter files)
+├── reference/                (Enrichment CSV files)
+└── logs/                    (Application logs)
+
+FTP Server (/home/cdruser/):
+├── files/                   (Input CDR files - *.asn)
+└── output/                 (Processed CSV files)
+```
+
+### Simulator Container Details
+
+Each simulator container (msc-simulator, smsc-simulator, pgw-simulator) contains:
+
+| Component | Description |
+|-----------|-------------|
+| CDR Generator | Generates 50 random CDR records every 60 seconds |
+| ASN.1 Encoder | Encodes CDRs to ASN.1 BER format |
+| FTP Client | Pushes files to central FTP server |
+| REST API | Health check and status endpoints |
+
+### Mediation Container Details
+
+| Component | Description |
+|-----------|-------------|
+| FTP Client | Pulls new files from FTP server |
+| Watch Service | Monitors FTP directory for new files |
+| SourceDetector | Extracts source type from filename |
+| Decoder | Decodes ASN.1 BER to CDR objects |
+| Processing Pipeline | Filter → Validate → Enrich → Dedupe → Aggregate |
+| CSV Formatter | Maps CDR to CSV format |
+| FTP Push | Pushes processed CSV to csv-storage |
+| REST API | Monitoring and metrics endpoints |
 
 ## Environment Variables
 
@@ -668,6 +930,18 @@ volumes:
 | LOGGING_CONFIG | Path to logging.properties | /config/logging.properties |
 | INPUT_DIR | Override input directory | From config |
 | OUTPUT_DIR | Override output directory | From config |
+
+### FTP Configuration (Environment)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| FTP_HOST | FTP server hostname | ftp-server |
+| FTP_PORT | FTP server port | 21 |
+| FTP_USER | FTP username | cdruser |
+| FTP_PASS | FTP password | cdrpass |
+| FTP_INPUT_DIR | Remote input directory | /home/cdruser/files |
+| FTP_OUTPUT_DIR | Remote output directory | /home/cdruser/output |
+| FTP_POLL_INTERVAL_MS | FTP polling interval | 5000 |
 
 ## Docker Configuration
 
@@ -699,8 +973,34 @@ EXPOSE 8080
 - [ ] Add all dependencies to pom.xml
 - [ ] Configure logging.properties
 - [ ] Create config.yaml with mediation settings
-- [ ] Create Docker configuration
-- [ ] Create docker-compose.yml
+- [ ] Add FTP configuration to config.yaml
+- [ ] Create Docker configuration for mediation-app
+- [ ] Create docker-compose.yml with all 6 containers
+
+### Phase 0a: Infrastructure (Simulators + FTP)
+- [ ] Create directory structure:
+  ```
+  simulators/
+  ├── msc-simulator/
+  │   ├── Dockerfile
+  │   └── src/
+  ├── smsc-simulator/
+  │   ├── Dockerfile
+  │   └── src/
+  └── pgw-simulator/
+      ├── Dockerfile
+      └── src/
+  ```
+- [ ] Create msc-simulator Dockerfile
+- [ ] Create smsc-simulator Dockerfile
+- [ ] Create pgw-simulator Dockerfile
+- [ ] Implement CDR generator (random test data) for each
+- [ ] Implement ASN.1 encoder for each simulator
+- [ ] Implement FTP client for each simulator
+- [ ] Configure FTP server (vsftpd) container
+- [ ] Configure csv-storage (nginx) container
+- [ ] Test FTP push from simulators
+- [ ] Test FTP pull from mediation-app
 
 ### Phase 1: Domain Model + ASN.1 Schema
 - [ ] Define CDR.asn schema file (single schema with all source fields)
@@ -709,11 +1009,15 @@ EXPOSE 8080
 - [ ] Create CDR.java domain model with all fields
 
 ### Phase 2: Input Pipeline
+- [ ] Implement FTP Client for file download
+- [ ] Implement FTP Watcher for new file detection
 - [ ] Implement CdrCollector with NIO WatchService
 - [ ] Implement SourceDetector (extract source from filename pattern)
 - [ ] Implement CdrDecoder using ASN1bean (single schema)
 - [ ] Implement CdrFilter with configurable rules
 - [ ] Implement CdrValidator with source-specific validation
+- [ ] Test FTP pull from ftp-server
+- [ ] Test end-to-end file flow: Simulator → FTP → Mediation
 
 ### Phase 3: Processing Pipeline
 - [ ] Implement CdrEnricher with CSV lookup
@@ -727,8 +1031,11 @@ EXPOSE 8080
 - [ ] Implement CsvFormatter for CSV mapping
 - [ ] Implement HeaderTrailerGenerator
 - [ ] Implement CdrDistributor
+- [ ] Implement FTP Client for CSV upload to csv-storage
 - [ ] Implement ErrorHandler with alarms
 - [ ] Implement MonitorServlet with REST endpoints
+- [ ] Test CSV output to csv-storage container
+- [ ] Test downstream pull from csv-storage
 
 ### Phase 5: Testing & Deployment
 - [ ] Write unit tests for all modules
