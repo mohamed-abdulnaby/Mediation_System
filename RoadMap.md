@@ -2,7 +2,85 @@
 
 ## Overview
 
-A Java-based Call Detail Record (CDR) Mediation System that processes ASN.1 encoded CDR files and outputs validated, enriched, aggregated CSV records for downstream billing/telecom systems.
+A Java-based Call Detail Record (CDR) Mediation System that processes ASN.1 encoded CDR files from multiple network elements (MSC, SMSC, A-PGW) and outputs validated, enriched, aggregated CSV records for downstream billing/telecom systems.
+
+## Data Sources
+
+| Source | Network Element | CDR Type | Protocol |
+|--------|----------------|----------|----------|
+| MSC | Mobile Switching Center | Voice/Call CDR | ASN.1 BER |
+| SMSC | Short Message Service Center | SMS CDR | ASN.1 BER |
+| A-PGW | Access Packet Data Gateway (PGW) | Data/Internet CDR | ASN.1 BER |
+
+### Delivery Mechanism
+
+- **Protocol:** FTP/SFTP (batch file transfer)
+- **Directory:** Common input directory (`/data/input`)
+- **Real-time:** Files dropped as they are generated (near real-time processing)
+- **Pattern:** Network elements upload files with pattern `CDR_<timestamp>_<SOURCE>_<seq>.asn`
+- **Processing:** WatchService detects new files immediately and triggers processing pipeline
+
+## Architecture - Multi-Source
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    Network Elements (via FTP)                           │
+│                                                                         │
+│  MSC (Voice) ──\                                                        │
+│                │                                                        │
+│  SMSC (SMS) ───┼──→ FTP Server → /data/input directory                 │
+│                │                                                        │
+│  A-PGW (Data) ─/                                                        │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                  CdrCollector (NIO WatchService)                       │
+│                  - Detects new .asn files                               │
+│                  - Triggers processing on file arrival                   │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       SourceDetector                                    │
+│                       - Extracts source from filename                   │
+│                       - Pattern: CDR_<ts>_<SOURCE>_<seq>.asn           │
+│                       - SOURCE: MSC | SMSC | PGW                       │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     CdrDecoder (Single Schema)                          │
+│                     - Decodes ASN.1 BER using single schema             │
+│                     - Returns unified CDR with source-specific fields    │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    CdrValidator                                          │
+│                    - Source-specific validation rules                   │
+│                    - MSC: dialA, dialB, duration, imsi required        │
+│                    - SMSC: sender, receiver, messageLength required     │
+│                    - PGW: imsi, apn, bytesIn, bytesOut required        │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    PROCESSING PHASE                                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Enrichment (CSV)  │  Duplicate Detection  │  Aggregation             │
+│  Buffering         │  Sorting              │  Consolidation             │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    OUTPUT PHASE                                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│  CSV Format Mapping  │  Header/Trailer Gen  │  File Distribution       │
+│  Error Alarms        │  Monitor Servlet                                │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                ▼
+                         CSV Output Files
+                         (single file with nulls for unused fields)
 
 ## Tech Stack
 
@@ -80,20 +158,26 @@ CSV Output Files (to downstream)
 
 ### Input
 - **Format:** ASN.1 BER (Basic Encoding Rules)
-- **Source:** Directory watcher monitoring input folder
-- **Key Fields:** dial_a, dial_b, timestamp
+- **Source:** Directory watcher monitoring input folder (common directory for all sources)
+- **File Naming Pattern:** `CDR_<timestamp>_<SOURCE>_<sequence>.asn`
+  - Examples: `CDR_20240115_143022_MSC_001.asn`, `CDR_20240115_143025_SMSC_001.asn`, `CDR_20240115_143028_PGW_001.asn`
+- **Source Detection:** Filename pattern (MSC/SMSC/PGW extracted from filename)
+- **Single Schema:** All three CDR types use same ASN.1 schema with optional fields
 
 ### Output
 - **Format:** CSV (flat file)
 - **Destination:** File system (output directory)
+- **Content:** Single merged file with nulls for source-specific fields not used by each record type
 - **Header:** Column names + metadata
 - **Trailer:** Record count + checksum
 
 ## Duplicate Detection
 
-- **Key Fields:** dial_a + dial_b + timestamp
+- **Scope:** Works across all source types (MSC, SMSC, PGW)
+- **Key Fields:** recordId + timestamp (unique per source within same second)
 - **Match Window:** Same second (same timestamp value)
 - **Implementation:** HashSet with composite key
+- **Note:** For MSC use dialA+dialB+timestamp, for SMSC use sender+receiver+timestamp, for PGW use imsi+apn+timestamp
 
 ## Enrichment
 
@@ -115,47 +199,50 @@ CSV Output Files (to downstream)
 ## Package Structure
 
 ```
-org.example.mediation
-├── input/                        (Person A)
+org.example.mediation_system
+├── input/
 │   ├── collector/
-│   │   └── CdrCollector.java    (NIO WatchService file watcher)
+│   │   └── CdrCollector.java         (NIO WatchService file watcher)
+│   ├── detector/
+│   │   └── SourceDetector.java       (Extracts source from filename: MSC/SMSC/PGW)
 │   ├── decoder/
-│   │   ├── CdrDecoder.java      (ASN1bean wrapper)
-│   │   └── [generated]/        (ASN1bean generated classes)
+│   │   ├── CdrDecoder.java           (ASN1bean wrapper - single schema)
+│   │   └── [generated]/              (ASN1bean generated classes)
 │   ├── filter/
-│   │   └── CdrFilter.java      (CDR filtering rules)
+│   │   └── CdrFilter.java           (CDR filtering rules)
 │   └── validator/
-│       └── CdrValidator.java   (CDR field validation)
-├── processing/                   (Person B)
+│       └── CdrValidator.java        (Source-specific field validation)
+├── processing/
 │   ├── enricher/
-│   │   └── CdrEnricher.java    (CSV lookup enrichment)
+│   │   └── CdrEnricher.java          (CSV lookup enrichment)
 │   ├── dedup/
-│   │   └── DuplicateDetector.java (dial_a + dial_b + timestamp)
+│   │   └── DuplicateDetector.java   (dial_a + dial_b + timestamp)
 │   ├── aggregator/
-│   │   └── CdrAggregator.java (Duration totals + count grouping)
+│   │   └── CdrAggregator.java      (Duration totals + count grouping)
 │   ├── consolidator/
-│   │   └── CdrConsolidator.java (Record consolidation)
+│   │   └── CdrConsolidator.java     (Record consolidation)
 │   ├── buffer/
-│   │   └── CdrBuffer.java    (Record buffering)
+│   │   └── CdrBuffer.java           (Record buffering)
 │   └── sorter/
-│       └── CdrSorter.java   (Record sorting)
-├── output/                       (Person C)
+│       └── CdrSorter.java           (Record sorting)
+├── output/
 │   ├── formatter/
-│   │   └── CsvFormatter.java (CSV format mapping)
+│   │   └── CsvFormatter.java        (CSV format mapping)
 │   ├── generator/
 │   │   └── HeaderTrailerGenerator.java (Header/Trailer)
 │   └── distributor/
-│       └── CdrDistributor.java (File distribution)
+│       └── CdrDistributor.java      (File distribution)
 ├── common/
 │   ├── model/
-│   │   ├── Cdr.java           (CDR domain object)
-│   │   └── AggregatedCdr.java (Aggregated CDR)
+│   │   ├── CdrSource.java           (Enum: MSC, SMSC, PGW)
+│   │   ├── Cdr.java                 (CDR domain object with all fields)
+│   │   └── AggregatedCdr.java      (Aggregated CDR)
 │   ├── config/
-│   │   └── MediationConfig.java (Configuration loader)
+│   │   └── MediationConfig.java    (Configuration loader)
 │   └── error/
-│       └── ErrorHandler.java (Error + alarm handling)
+│       └── ErrorHandler.java        (Error + alarm handling)
 └── servlet/
-    └── MonitorServlet.java    (REST endpoints for monitoring)
+    └── MonitorServlet.java          (REST endpoints for monitoring)
 ```
 
 ## Development Phases
@@ -171,17 +258,19 @@ org.example.mediation
 ### Phase 1: Domain Model + ASN.1 Schema (Person A)
 | Task | Owner | Notes |
 |------|-------|-------|
-| Define ASN.1 schema (.asn file) | Person A | Define CDR structure in ASN.1 syntax |
+| Define ASN.1 schema (.asn file) | Person A | Single schema for MSC/SMSC/PGW with optional fields |
 | Generate Java classes | Person A | Run asn1bean-compiler |
-| Create CDR domain model | Person A | CDR.java with all fields |
+| Create CdrSource enum | Person A | Enum: MSC=1, SMSC=2, PGW=3 |
+| Create CDR domain model | Person A | CDR.java with all fields (source-specific) |
 
 ### Phase 2: Input Pipeline (Person A)
 | Task | Owner | Dependencies | Notes |
 |------|-------|-------------|-------|
 | Collection service | Person A | Phase 1 | NIO WatchService file watcher |
-| ASN.1 Decoder wrapper | Person A | Phase 1 | Use generated ASN1bean classes |
+| SourceDetector | Person A | Phase 1 | Extract source type from filename pattern |
+| ASN.1 Decoder wrapper | Person A | Phase 1 | Use generated ASN1bean classes (single schema) |
 | Filtering | Person A | Phase 2 | CDR field filtering rules |
-| Validation | Person A | Phase 2 | Field integrity validation |
+| Validation | Person A | Phase 2 | Source-specific field validation |
 
 ### Phase 3: Processing Pipeline (Person B)
 | Task | Owner | Dependencies | Notes |
@@ -215,8 +304,61 @@ org.example.mediation
 ### ASN1bean Workflow
 1. Write CDR ASN.1 schema in `.asn` file format
 2. Download asn1bean-compiler
-3. Run: `java -jar asn1bean-compiler.jar -f CDR.asn -o src/main/java/org/example/mediation/input/decoder/generated/`
+3. Run: `java -jar asn1bean-compiler.jar -f CDR.asn -o src/main/java/org/example/mediation_system/input/decoder/generated/`
 4. Generated classes can be used directly in decoder wrapper
+
+### Source Detection (Filename Pattern)
+```
+CDR_<timestamp>_<SOURCE>_<sequence>.asn
+Examples:
+- CDR_20240115_143022_MSC_001.asn   → Source: MSC
+- CDR_20240115_143025_SMSC_001.asn  → Source: SMSC
+- CDR_20240115_143028_PGW_001.asn   → Source: PGW
+```
+
+### Source-Specific Validation Rules
+
+| Source | sourceType | Required Fields |
+|--------|------------|-----------------|
+| MSC (Voice) | 1 | dialA, dialB, duration, imsi, timestamp |
+| SMSC (SMS) | 2 | sender, receiver, messageLength, imsi, timestamp |
+| PGW (Data) | 3 | imsi, apn, bytesIn, bytesOut, timestamp |
+
+### Single ASN.1 Schema (Unified)
+```asn
+CDR DEFINITIONS ::= BEGIN
+
+CdrRecord ::= SEQUENCE {
+    -- Common fields
+    sourceType         INTEGER (1..3),  -- 1=MSC, 2=SMSC, 3=PGW
+    recordId           INTEGER,
+    timestamp          GeneralizedTime,
+
+    -- Voice (MSC) fields - sourceType=1
+    dialA              NumericString (SIZE(1..20)) OPTIONAL,
+    dialB              NumericString (SIZE(1..20)) OPTIONAL,
+    duration           INTEGER (0..86400) OPTIONAL,
+    callType           INTEGER (0..9) OPTIONAL,
+    imsi               NumericString (SIZE(15)) OPTIONAL,
+    imei               NumericString (SIZE(15)) OPTIONAL,
+
+    -- SMS (SMSC) fields - sourceType=2
+    sender             NumericString (SIZE(1..20)) OPTIONAL,
+    receiver           NumericString (SIZE(1..20)) OPTIONAL,
+    smscNumber         NumericString (SIZE(1..20)) OPTIONAL,
+    messageLength      INTEGER (0..160) OPTIONAL,
+    messageType        INTEGER (0..5) OPTIONAL,
+
+    -- Data (PGW) fields - sourceType=3
+    apn                NumericString (SIZE(1..100)) OPTIONAL,
+    bytesIn            INTEGER (0..4294967295) OPTIONAL,
+    bytesOut           INTEGER (0..4294967295) OPTIONAL,
+    ratType            INTEGER (0..10) OPTIONAL
+}
+
+CdrFile ::= SEQUENCE OF CdrRecord
+END
+```
 
 ### Duplicate Detection Implementation
 ```java
@@ -260,20 +402,23 @@ aggregation:
 | pom.xml (updated) | All | 0 |
 | Dockerfile | All | 0 |
 | docker-compose.yml | All | 0 |
-| mediation.properties | All | 0 |
-| CDR.asn (ASN.1 schema) | A | 1 |
-| Cdr.java | A | 1 |
+| config.yaml | All | 0 |
+| logging.properties | All | 0 |
+| CDR.asn (Single ASN.1 schema) | A | 1 |
+| CdrSource.java (enum: MSC, SMSC, PGW) | A | 1 |
+| Cdr.java (with all source-specific fields) | A | 1 |
+| SourceDetector.java | A | 2 |
 | CdrCollector.java | A | 2 |
-| CdrDecoder.java | A | 2 |
+| CdrDecoder.java (single decoder for all sources) | A | 2 |
 | CdrFilter.java | A | 2 |
-| CdrValidator.java | A | 2 |
+| CdrValidator.java (source-specific validation) | A | 2 |
 | CdrEnricher.java | B | 3 |
 | DuplicateDetector.java | B | 3 |
 | CdrAggregator.java | B | 3 |
 | CdrConsolidator.java | B | 3 |
 | CdrBuffer.java | B | 3 |
 | CdrSorter.java | B | 3 |
-| CsvFormatter.java | C | 4 |
+| CsvFormatter.java (with null handling) | C | 4 |
 | HeaderTrailerGenerator.java | C | 4 |
 | CdrDistributor.java | C | 4 |
 | ErrorHandler.java | C | 4 |
@@ -558,15 +703,17 @@ EXPOSE 8080
 - [ ] Create docker-compose.yml
 
 ### Phase 1: Domain Model + ASN.1 Schema
-- [ ] Define CDR.asn schema file
+- [ ] Define CDR.asn schema file (single schema with all source fields)
 - [ ] Generate ASN1bean Java classes
+- [ ] Create CdrSource.java enum (MSC=1, SMSC=2, PGW=3)
 - [ ] Create CDR.java domain model with all fields
 
 ### Phase 2: Input Pipeline
 - [ ] Implement CdrCollector with NIO WatchService
-- [ ] Implement CdrDecoder using ASN1bean
+- [ ] Implement SourceDetector (extract source from filename pattern)
+- [ ] Implement CdrDecoder using ASN1bean (single schema)
 - [ ] Implement CdrFilter with configurable rules
-- [ ] Implement CdrValidator with field validation
+- [ ] Implement CdrValidator with source-specific validation
 
 ### Phase 3: Processing Pipeline
 - [ ] Implement CdrEnricher with CSV lookup
@@ -604,22 +751,95 @@ EXPOSE 8080
 
 ## Sample Data Formats
 
-### ASN.1 Schema (CDR.asn)
+### Input Filename Pattern (Source Detection)
+```
+CDR_<timestamp>_<SOURCE>_<sequence>.asn
+
+Examples:
+- CDR_20240115_143022_MSC_001.asn    → Voice CDR from MSC
+- CDR_20240115_143025_SMSC_001.asn   → SMS CDR from SMSC
+- CDR_20240115_143028_PGW_001.asn    → Data CDR from PGW
+```
+
+### Unified ASN.1 Schema (CDR.asn)
 ```asn
 CDR DEFINITIONS ::= BEGIN
 
 CdrRecord ::= SEQUENCE {
-    callId           INTEGER,
-    dialA            NumericString (SIZE(1..20)),
-    dialB            NumericString (SIZE(1..20)),
-    timestamp        GeneralizedTime,
-    duration         INTEGER (0..86400),
-    callType         INTEGER (0..9),
-    ...
+    sourceType         INTEGER (1..3),  -- 1=MSC, 2=SMSC, 3=PGW
+    recordId           INTEGER,
+    timestamp          GeneralizedTime,
+
+    -- Voice (MSC) fields - sourceType=1
+    dialA              NumericString (SIZE(1..20)) OPTIONAL,
+    dialB              NumericString (SIZE(1..20)) OPTIONAL,
+    duration           INTEGER (0..86400) OPTIONAL,
+    callType           INTEGER (0..9) OPTIONAL,
+    imsi               NumericString (SIZE(15)) OPTIONAL,
+    imei               NumericString (SIZE(15)) OPTIONAL,
+
+    -- SMS (SMSC) fields - sourceType=2
+    sender             NumericString (SIZE(1..20)) OPTIONAL,
+    receiver           NumericString (SIZE(1..20)) OPTIONAL,
+    smscNumber         NumericString (SIZE(1..20)) OPTIONAL,
+    messageLength      INTEGER (0..160) OPTIONAL,
+    messageType        INTEGER (0..5) OPTIONAL,
+
+    -- Data (PGW) fields - sourceType=3
+    apn                NumericString (SIZE(1..100)) OPTIONAL,
+    bytesIn            INTEGER (0..4294967295) OPTIONAL,
+    bytesOut           INTEGER (0..4294967295) OPTIONAL,
+    ratType            INTEGER (0..10) OPTIONAL
 }
 
 CdrFile ::= SEQUENCE OF CdrRecord
 END
+```
+
+### Enrichment CSV (subscribers.csv)
+```csv
+identifier,carrier,region,subscriber_type,status
+1234567890,AT&T,Northeast,Premium,active
+1234567891,Verizon,Southeast,Standard,active
+1234567892,T-Mobile,Southwest,Prepaid,active
+```
+
+### Output CSV (with nulls for unused source fields)
+```csv
+H|2024-01-15 10:00:00|application/csv|3
+1|1001|2024-01-15T09:30:00Z|1234567890|1234567891|120|0|123456789012345678|IMEI123456789|null|null|null|null|null|null|null|null|null
+2|1002|2024-01-15T09:31:00Z|null|null|null|null|null|null|1234567890|1234567891|+1234567890|80|1|null|null|null|null|null
+3|1003|2024-01-15T09:32:00Z|null|null|null|null|123456789012345678|null|null|null|null|null|internet|1024|2048|6
+T|3|2048|abc123def456
+```
+
+**Column mapping:**
+| Col | MSC (Voice) | SMSC (SMS) | PGW (Data) |
+|-----|-------------|------------|-------------|
+| 1 | sourceType | sourceType | sourceType |
+| 2 | recordId | recordId | recordId |
+| 3 | timestamp | timestamp | timestamp |
+| 4 | dialA | null | null |
+| 5 | dialB | null | null |
+| 6 | duration | null | null |
+| 7 | callType | null | null |
+| 8 | imsi | imsi | imsi |
+| 9 | imei | null | null |
+| 10 | null | sender | null |
+| 11 | null | receiver | null |
+| 12 | null | smscNumber | null |
+| 13 | null | messageLength | null |
+| 14 | null | messageType | null |
+| 15 | null | null | apn |
+| 16 | null | null | bytesIn |
+| 17 | null | null | bytesOut |
+| 18 | null | null | ratType |
+
+### Aggregated Output
+```csv
+dial_a,carrier,total_calls,total_duration_seconds
+1234567890,AT&T,50,6000
+1234567891,Verizon,30,3600
 ```
 
 ### Enrichment CSV (subscribers.csv)
