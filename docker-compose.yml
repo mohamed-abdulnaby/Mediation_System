@@ -1,0 +1,24 @@
+services:
+  # --- Data Sources ---
+  msc:
+    build: ./msc-service
+  smsc:
+    build: ./smsc-service
+  pgw:
+    build: ./pgw-service
+
+  # --- The Hub ---
+  mediation:
+    build: ./mediation-service
+    environment:
+      - BILLING_URL=http://billing:8080/ingest
+      - FRAUD_URL=http://fraud:8080/analyze
+    depends_on:
+      - billing
+      - fraud
+
+  # --- Final Endpoints ---
+  billing:
+    build: ./billing-service
+  fraud:
+    build: ./fraud-service

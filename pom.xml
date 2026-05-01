@@ -4,11 +4,20 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.example</groupId>
-    <artifactId>Mediation_System</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <name>Mediation_System</name>
-    <packaging>war</packaging>
+    <groupId>org.telecom</groupId>
+    <artifactId>telecom-parent</artifactId>
+    <version>1.0</version>
+    <packaging>pom</packaging>
+
+        <modules>
+        <module>telecom-common</module>
+        <module>msc-service</module>
+        <module>smsc-service</module>
+        <module>pgw-service</module>
+        <module>mediation-service</module>
+        <module>billing-service</module>
+        <module>fraud-service</module>
+    </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -34,6 +43,13 @@
             <version>2.1.3</version>
             <scope>provided</scope>
         </dependency>
+        <!-- http multipart builder -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <version>5.2.1</version>
+        </dependency>
+
         <dependency>
             <groupId>org.eclipse.parsson</groupId>
             <artifactId>parsson</artifactId>
