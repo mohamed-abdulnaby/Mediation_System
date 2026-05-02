@@ -32,13 +32,14 @@ public class CSVFormatter {
                         s.get("deleted_at");
                 storeInFile(line, filename);
             }
+            FileSender.sendToAll(filename);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     public static void storeInFile(String data, String filename) {
-        try (FileWriter fw = new FileWriter("out" + filename, true)) {
+        try (FileWriter fw = new FileWriter(filename, true)) {
             fw.write(data + "\n");
 
         } catch (Exception e) {

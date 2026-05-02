@@ -11,8 +11,8 @@ services:
   mediation:
     build: ./mediation-service
     environment:
-      - BILLING_URL=http://billing:8080/ingest
-      - FRAUD_URL=http://fraud:8080/analyze
+      - BILLING_URL=http://billing:8080/upload
+      - FRAUD_URL=http://fraud:8080/upload
     depends_on:
       - billing
       - fraud
