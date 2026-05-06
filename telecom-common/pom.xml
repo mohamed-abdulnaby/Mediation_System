@@ -12,6 +12,13 @@
 
     <artifactId>telecom-common</artifactId>
     <packaging>jar</packaging>
+    <dependencies>
+        <dependency>
+            <groupId>commons-net</groupId>
+            <artifactId>commons-net</artifactId>
+            <version>3.10.0</version>
+        </dependency>
+    </dependencies>
 
     <name>Telecom Common</name>
     <description>Shared utilities and common code for telecom services</description>

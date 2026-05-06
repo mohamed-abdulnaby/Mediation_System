@@ -181,7 +181,7 @@ CSV Output Files (to downstream)
 │                    │   ftp-server        │                                │
 │                    │   (vsftpd)          │                                │
 │                    │                     │                                │
-│                    │ /data/cdr-input/    │                                │
+│                    │ /data/mscVoiceCdr-input/    │                                │
 │                    │ Port: 21            │                                │
 │                    └─────────┬───────────┘                                │
 │                              │                                              │
@@ -219,7 +219,7 @@ CSV Output Files (to downstream)
    │  msc-simulator  → generates 50 voice CDR records             │
    │                  → encodes to ASN.1 BER                       │
    │                  → filename: CDR_<ts>_MSC_<seq>.asn           │
-   │                  → FTP push to ftp-server:/data/cdr-input/  │
+   │                  → FTP push to ftp-server:/data/mscVoiceCdr-input/  │
    └────────────────────────────────────────────────────────────────┘
 
 2. Each simulator pushes to FTP:
@@ -229,7 +229,7 @@ CSV Output Files (to downstream)
    │                  → FTP push to ftp-server                     │
    └────────────────────────────────────────────────────────────────┘
 
-3. ftp-server receives files in /data/cdr-input/
+3. ftp-server receives files in /data/mscVoiceCdr-input/
 
 4. mediation-app FTP watcher detects new files
 
@@ -258,7 +258,7 @@ Upstream (Push)          Mediation System           Downstream (Pull)
      ▼                         ▼                          │
 ┌─────────┐             ┌─────────────┐           ┌──────────┐
 │   MSC   │──FTP Push──▶│   FTP Server │◀──Pull───│ Billing  │
-│ (Voice) │             │ /cdr-input/  │          │ System   │
+│ (Voice) │             │ /mscVoiceCdr-input/  │          │ System   │
 └─────────┘             └──────┬───────┘           └──────────┘
                                │
 ┌─────────┐                   │
@@ -668,9 +668,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Build Docker Image
-        run: docker build -t cdr-mediation:${{ github.sha }} .
+        run: docker build -t mscVoiceCdr-mediation:${{ github.sha }} .
       - name: Push to Registry
-        run: docker push registry.example.com/cdr-mediation:${{ github.sha }}
+        run: docker push registry.example.com/mscVoiceCdr-mediation:${{ github.sha }}
 ```
 
 ## Runtime Management
@@ -685,7 +685,7 @@ jobs:
 ```yaml
 # prometheus.yml
 scrape_configs:
-  - job_name: 'cdr-mediation'
+  - job_name: 'mscVoiceCdr-mediation'
     static_configs:
       - targets: ['localhost:8080']
 ```
@@ -823,7 +823,7 @@ services:
       - PASV_MIN_PORT=21100
       - PASV_MAX_PORT=21110
     volumes:
-      - cdr-input:/home/cdruser/files
+      - mscVoiceCdr-input:/home/cdruser/files
       - csv-output:/home/cdruser/output
     ports:
       - "21:21"
@@ -877,7 +877,7 @@ networks:
     driver: bridge
 
 volumes:
-  cdr-input:
+  mscVoiceCdr-input:
   csv-output:
   mediation-logs:
 ```
