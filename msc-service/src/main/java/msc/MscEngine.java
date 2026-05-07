@@ -1,7 +1,6 @@
 package msc;
 
-import org.telecom.ftp.FtpUploader;
-import org.telecom.ftp.CdrFileWriter;
+import org.telecom.common.FtpUploader;
 
 public class MscEngine {
 
@@ -12,20 +11,21 @@ public class MscEngine {
         while (true) {
 
             try {
+                // 1. generate CDR
                 MscVoiceCdr cdr = MscCdrGenerator.generate();
+
+                // 2. encode to ASN.1
                 byte[] encoded = MscCdrGenerator.encode(cdr);
 
-                // 3. write binary file
-                String path = CdrFileWriter.write(encoded,"MSC");
+                // 3. build filename only (NO FILE CREATION)
+                String fileName = "CDR_" + System.currentTimeMillis() + "_MSC.asn";
 
-                String fileName = path.substring(path.lastIndexOf("/") + 1);
-
-                // 4. upload FTP
-                uploader.upload(path, fileName);
+                // 4. upload directly
+                uploader.upload(encoded, fileName);
 
                 System.out.println("MSC sent ASN.1 binary CDR");
 
-                Thread.sleep(3000);
+                Thread.sleep(5000);
 
             } catch (Exception e) {
                 e.printStackTrace();

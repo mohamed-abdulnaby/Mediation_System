@@ -8,6 +8,7 @@ services:
     container_name: ftp-server
     ports:
       - "21:21"
+      - "30000-30009:30000-30009"
     environment:
       - PUBLICHOST=ftp-server
       - FTP_USER_NAME=testuser

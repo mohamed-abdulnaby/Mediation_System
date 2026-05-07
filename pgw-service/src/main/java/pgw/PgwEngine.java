@@ -1,7 +1,7 @@
 package pgw;
 
-import org.telecom.ftp.FtpUploader;
-import org.telecom.ftp.CdrFileWriter;
+import org.telecom.common.FtpUploader;
+
 public class PgwEngine {
 
     private final FtpUploader uploader = new FtpUploader();
@@ -14,13 +14,14 @@ public class PgwEngine {
 
                 PgwDataCdr cdr = PgwCdrGenerator.generate();
 
+                // 2. encode to ASN.1
                 byte[] encoded = PgwCdrGenerator.encode(cdr);
 
-                String path = CdrFileWriter.write(encoded,"PGW");
+                // 3. build filename only (NO FILE CREATION)
+                String fileName = "CDR_" + System.currentTimeMillis() + "_PGW.asn";
 
-                String fileName = path.substring(path.lastIndexOf("/") + 1);
-
-                uploader.upload(path, fileName);
+                // 4. upload directly
+                uploader.upload(encoded, fileName);
 
                 System.out.println("PGW sent ASN.1 Data CDR");
 

@@ -9,6 +9,7 @@
     </option>
     <option name="ignoredFiles">
       <set>
+        <option value="$PROJECT_DIR$/ahmed/pom.xml" />
         <option value="$PROJECT_DIR$/jbdchb/pom.xml" />
         <option value="$PROJECT_DIR$/msc-service/msc/pom.xml" />
         <option value="$PROJECT_DIR$/msc-service/msc_service/pom.xml" />

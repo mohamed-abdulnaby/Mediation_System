@@ -1,26 +1,23 @@
-package org.telecom.ftp;
+package org.telecom.common;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPReply;
 
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 
 public class FtpUploader {
 
     private final String host = "localhost";
     private final int port = 21;
-    private final String user = "ftpuser";
-    private final String pass = "ftp123";
+    private final String user = "testuser";
+    private final String pass = "testpass";
 
-    public void upload(String filePath, String fileName) {
+    public void upload(byte[] data,String fileName) {
 
         FTPClient ftp = new FTPClient();
 
-        try (InputStream input = new FileInputStream(new File(filePath))) {
+        try (InputStream input = new ByteArrayInputStream(data)) {
 
             ftp.connect(host, port);
 
@@ -38,7 +35,7 @@ public class FtpUploader {
 
             ftp.enterLocalPassiveMode();
             ftp.setFileType(FTP.BINARY_FILE_TYPE);
-
+            ftp.changeWorkingDirectory("/home/testuser");
             boolean uploaded = ftp.storeFile(fileName, input);
 
             if (uploaded) {
