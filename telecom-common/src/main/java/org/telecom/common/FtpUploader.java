@@ -8,10 +8,10 @@ import java.io.*;
 
 public class FtpUploader {
 
-    private final String host = "localhost";
+    private final String host = System.getenv("FTP_HOST");
+    private final String user = System.getenv("FTP_USER");
+    private final String pass = System.getenv("FTP_PASS");
     private final int port = 21;
-    private final String user = "testuser";
-    private final String pass = "testpass";
 
     public void upload(byte[] data,String fileName) {
 

@@ -1,8 +1,9 @@
-package org.telecom.common;
+package mediation;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.HashSet;
@@ -11,13 +12,15 @@ import java.util.Set;
 public class FtpDownloader {
 
     // FTP Config
-    private final String host = "localhost";
+    private final String host = System.getenv("FTP_HOST");
+    private final String user = System.getenv("FTP_USER");
+    private final String pass = System.getenv("FTP_PASS");
     private final int port = 21;
-    private final String user = "testuser";
-    private final String pass = "testpass";
-
     // processed files tracker
     private final Set<String> processedFiles = new HashSet<>();
+
+    // Decode + Filter
+    private final FtpProcessor processor = new FtpProcessor();
 
     private FTPClient connect() throws Exception {
 
@@ -32,16 +35,15 @@ public class FtpDownloader {
         return ftp;
     }
 
-    public void pollAndDownload(String remoteDir, String localDir) {
+    public void pollFromFtp() {
 
         while (true) {
 
             try {
 
                 FTPClient ftp = connect();
-
+                String remoteDir=".";
                 String[] files = ftp.listNames(remoteDir);
-                System.out.println("FILES:");
 
                 if (files != null) {
 
@@ -60,23 +62,26 @@ public class FtpDownloader {
                         System.out.println("New file detected: " + file);
 
                         String remotePath = remoteDir + "/" + file;
-                        String localPath = localDir + "/" + file;
 
-                        try (OutputStream os = new FileOutputStream(localPath)) {
+                        // Convert File To Output Stream
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-                            boolean success = ftp.retrieveFile(remotePath, os);
+                        boolean success = ftp.retrieveFile(remotePath, baos);
 
-                            if (success) {
 
-                                processedFiles.add(file);
+                        if (success) {
 
-                                System.out.println("Downloaded: " + file);
+                            byte[] data = baos.toByteArray();
+                            processedFiles.add(file);
 
-                            } else {
+                            processor.process(data);
+                            System.out.println("Downloaded: " + file);
 
-                                System.out.println("Failed to download: " + file);
-                            }
+                        } else {
+
+                            System.out.println("Failed to download: " + file);
                         }
+
                     }
                 }
 

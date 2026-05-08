@@ -8,3 +8,5 @@ docker run -d \
   -e FTP_USER_HOME=/home/testuser \
   -v $(pwd)/ftp-data:/home/testuser \
   stilliard/pure-ftpd
+
+  ftp-server

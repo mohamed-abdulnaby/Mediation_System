@@ -14,6 +14,8 @@ services:
       - FTP_USER_NAME=testuser
       - FTP_USER_PASS=testpass
       - FTP_USER_HOME=/home/testuser
+    volumes:
+      - ftp_data:/home/testuser
 
   # --- Data Sources (Upload via FTP) ---
   msc:
@@ -44,6 +46,8 @@ services:
       - FTP_PASS=testpass
       - BILLING_URL=http://billing:8080/upload
       - FRAUD_URL=http://fraud:8080/upload
+    volumes:
+      - ftp_data:/data/cdrs
 
   # --- Downstream Systems (HTTP) ---
   billing:
@@ -51,3 +55,7 @@ services:
 
   fraud:
     build: ./fraud-service
+
+# --- Shared Volume ---
+volumes:
+  ftp_data:

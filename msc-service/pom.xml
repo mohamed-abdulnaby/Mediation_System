@@ -43,8 +43,6 @@
                         </goals>
 
                         <configuration>
-
-                            <!-- 🔥 الحل هنا -->
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
