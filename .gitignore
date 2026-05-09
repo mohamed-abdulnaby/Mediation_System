@@ -3,6 +3,8 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 .kotlin
+person_b_complete_roadmap.md
+
 
 ### IntelliJ IDEA ###
 .idea/modules.xml
