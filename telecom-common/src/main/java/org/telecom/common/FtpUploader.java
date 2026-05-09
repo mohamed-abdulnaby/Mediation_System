@@ -2,9 +2,10 @@ package org.telecom.common;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
-import org.apache.commons.net.ftp.FTPReply;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class FtpUploader {
 
@@ -13,42 +14,46 @@ public class FtpUploader {
     private final String pass = System.getenv("FTP_PASS");
     private final int port = 21;
 
-    public void upload(byte[] data,String fileName) {
+    public void upload(byte[] data, String fileName) {
 
-        FTPClient ftp = new FTPClient();
+        while (true) {
 
-        try (InputStream input = new ByteArrayInputStream(data)) {
+            FTPClient ftp = new FTPClient();
 
-            ftp.connect(host, port);
+            try (InputStream input = new ByteArrayInputStream(data)) {
 
-            if (!FTPReply.isPositiveCompletion(ftp.getReplyCode())) {
-                ftp.disconnect();
-                throw new RuntimeException("FTP server refused connection.");
-            }
+                ftp.connect(host, port);
 
-            boolean login = ftp.login(user, pass);
+                if (!ftp.login(user, pass)) {
+                    ftp.logout();
+                    throw new RuntimeException("FTP login failed");
+                }
 
-            if (!login) {
+                ftp.enterLocalPassiveMode();
+                ftp.setFileType(FTP.BINARY_FILE_TYPE);
+                ftp.changeWorkingDirectory("/home/testuser");
+
+                boolean uploaded = ftp.storeFile(fileName, input);
+
+                if (uploaded) {
+                    System.out.println("Uploaded: " + fileName);
+                } else {
+                    System.out.println("Upload failed: " + fileName);
+                }
+
                 ftp.logout();
-                throw new RuntimeException("FTP login failed.");
+                ftp.disconnect();
+
+                break;
+            } catch (Exception e) {
+
+                System.out.println("FTP not ready yet... retrying (" + e.getMessage() + ")");
+
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException ignored) {}
+
             }
-
-            ftp.enterLocalPassiveMode();
-            ftp.setFileType(FTP.BINARY_FILE_TYPE);
-            ftp.changeWorkingDirectory("/home/testuser");
-            boolean uploaded = ftp.storeFile(fileName, input);
-
-            if (uploaded) {
-                System.out.println("Uploaded: " + fileName);
-            } else {
-                System.out.println("Upload failed: " + fileName);
-            }
-
-            ftp.logout();
-            ftp.disconnect();
-
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 }

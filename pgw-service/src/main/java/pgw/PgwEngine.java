@@ -25,10 +25,12 @@ public class PgwEngine {
 
                 System.out.println("PGW sent ASN.1 Data CDR");
 
-                Thread.sleep(3000);
-
             } catch (Exception e) {
                 e.printStackTrace();
+            }
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException ignored) {
             }
         }
     }
