@@ -11,13 +11,13 @@
 
         <modules>
         <module>telecom-common</module>
-        <module>msc-service</module>
+            <module>msc-service</module>
         <module>smsc-service</module>
         <module>pgw-service</module>
         <module>mediation-service</module>
         <module>billing-service</module>
         <module>fraud-service</module>
-    </modules>
+        </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
