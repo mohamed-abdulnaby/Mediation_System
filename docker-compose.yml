@@ -13,7 +13,7 @@ services:
       - FTP_USER_PASS=testpass
       - FTP_USER_HOME=/home/testuser
     volumes:
-      - ftp-data:/home/testuser
+      - ./ftp-data:/home/testuser
 
   # --- Data Sources (Upload via FTP) ---
   msc:
@@ -65,6 +65,3 @@ services:
   fraud:
     build: ./fraud-service
 
-# --- Shared Volume ---
-volumes:
-  ftp-data:

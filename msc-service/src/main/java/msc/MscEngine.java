@@ -11,27 +11,34 @@ public class MscEngine {
         while (true) {
 
             try {
-                // 1. generate CDR
+
+                // 1. Generate CDR
                 MscVoiceCdr cdr = MscCdrGenerator.generate();
 
-                // 2. encode to ASN.1
+                // 2. Encode to ASN.1
                 byte[] encoded = MscCdrGenerator.encode(cdr);
 
-                // 3. build filename only (NO FILE CREATION)
+                // 3. Build filename
                 String fileName = "CDR_" + System.currentTimeMillis() + "_MSC.asn";
 
-                // 4. upload directly
+                // 4. Upload directly to FTP
                 uploader.upload(encoded, fileName);
 
-                System.out.println("MSC sent ASN.1 binary CDR");
-
-                Thread.sleep(5000);
+                System.out.println("MSC sent ASN.1 binary CDR: " + fileName);
 
             } catch (Exception e) {
-                e.printStackTrace();
+
+                System.out.println("MSC upload failed: " + e.getMessage());
+            }
+
+            // Generate every 5 seconds
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException ignored) {
             }
         }
     }
+
     public static void main(String[] args) {
 
         MscEngine engine = new MscEngine();

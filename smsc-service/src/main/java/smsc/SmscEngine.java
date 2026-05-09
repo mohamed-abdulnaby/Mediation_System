@@ -25,10 +25,12 @@ public class SmscEngine {
 
                 System.out.println("SMSC sent ASN.1 SMS CDR");
 
-                Thread.sleep(3000);
-
             } catch (Exception e) {
                 e.printStackTrace();
+            }
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException ignored) {
             }
         }
     }
