@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
 
   # --- FTP Server (Input Layer) ---
@@ -15,23 +13,35 @@ services:
       - FTP_USER_PASS=testpass
       - FTP_USER_HOME=/home/testuser
     volumes:
-      - ftp_data:/home/testuser
+      - ftp-data:/home/testuser
 
   # --- Data Sources (Upload via FTP) ---
   msc:
     build: ./msc-service
     depends_on:
       - ftp-server
+    environment:
+      - FTP_HOST=ftp-server
+      - FTP_USER=testuser
+      - FTP_PASS=testpass
 
   smsc:
     build: ./smsc-service
     depends_on:
       - ftp-server
+    environment:
+      - FTP_HOST=ftp-server
+      - FTP_USER=testuser
+      - FTP_PASS=testpass
 
   pgw:
     build: ./pgw-service
     depends_on:
       - ftp-server
+    environment:
+      - FTP_HOST=ftp-server
+      - FTP_USER=testuser
+      - FTP_PASS=testpass
 
   # --- Mediation (Core) ---
   mediation:
@@ -46,8 +56,7 @@ services:
       - FTP_PASS=testpass
       - BILLING_URL=http://billing:8080/upload
       - FRAUD_URL=http://fraud:8080/upload
-    volumes:
-      - ftp_data:/data/cdrs
+
 
   # --- Downstream Systems (HTTP) ---
   billing:
@@ -58,4 +67,4 @@ services:
 
 # --- Shared Volume ---
 volumes:
-  ftp_data:
+  ftp-data:
