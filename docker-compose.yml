@@ -1,6 +1,5 @@
 services:
 
-  # --- FTP Server (Input Layer) ---
   ftp-server:
     image: stilliard/pure-ftpd
     container_name: ftp-server
@@ -15,7 +14,6 @@ services:
     volumes:
       - ftp-data:/home/testuser:Z
 
-  # --- Data Sources (Upload via FTP) ---
   msc:
     build: ./msc-service
     depends_on:
@@ -43,7 +41,20 @@ services:
       - FTP_USER=testuser
       - FTP_PASS=testpass
 
-  # --- Mediation (Core) ---
+  billing:
+    build: ./billing-service
+    ports:
+      - "1099:1099"
+    volumes:
+      - billing-input:/app/input
+
+  fraud:
+    build: ./fraud-service
+    ports:
+      - "1099:1099"
+    volumes:
+      - fraud-input:/app/input
+
   mediation:
     build: ./mediation-service
     depends_on:
@@ -54,17 +65,10 @@ services:
       - FTP_HOST=ftp-server
       - FTP_USER=testuser
       - FTP_PASS=testpass
-      - BILLING_URL=http://billing:8080/upload
-      - FRAUD_URL=http://fraud:8080/upload
+      - BILLING_RMI_HOST=billing
+      - FRAUD_RMI_HOST=fraud
 
-
-  # --- Downstream Systems (HTTP) ---
-  billing:
-    build: ./billing-service
-
-  fraud:
-    build: ./fraud-service
-
-# --- Shared Volume ---
 volumes:
   ftp-data:
+  billing-input:
+  fraud-input:
