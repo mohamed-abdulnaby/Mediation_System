@@ -8,7 +8,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class CDRSorter {
-    private String getTimestamp(Object cdr) {
+    // Package-private: used by CDRBuffer to sort CdrEntry batches by timestamp
+    String getTimestamp(Object cdr) {
         if (cdr instanceof MscVoiceCdr m) return m.callStartTime;
         if (cdr instanceof SmscCdr s)     return s.submissionTime;
         if (cdr instanceof PgwDataCdr p)  return p.startTime;
