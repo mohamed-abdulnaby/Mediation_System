@@ -45,6 +45,6 @@ class CDREnricherTest {
         CDREnricher.SubscriberInfo info = enricher.lookup(cdr.callingNumber);
 
         assertEquals("Unknown", info.carrier());
-        assertEquals("Standard", info.SubscriberType());
+        assertEquals("Standard", info.SubscriberType()  );
     }
 }

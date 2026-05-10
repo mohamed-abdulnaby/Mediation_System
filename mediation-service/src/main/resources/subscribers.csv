@@ -1,5 +1,5 @@
-msisdn,carrier,region,subscriber_type,status
-1234567890,Vodafone,Cairo,Premium,active
-1234567891,Orange,Alexandria,Standard,active
-1234567892,Etisalat,Giza,Prepaid,active
-1234567893,WE,Luxor,Prepaid,active
+msisdn,carrier,region,subscriber_type,status,hplmn
+201000000001,Vodafone,Cairo,Premium,active,EGYVO
+201000000002,Orange,Alexandria,Standard,active,EGYOO
+201000000003,Etisalat,Giza,Prepaid,active,EGYET
+201000000004,WE,Luxor,Standard,active,EGYWE
