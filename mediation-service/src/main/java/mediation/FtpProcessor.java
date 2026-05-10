@@ -2,11 +2,21 @@ package mediation;
 
 import msc.MscVoiceCdr;
 import pgw.PgwDataCdr;
+import processing.CDRAggregator;
+import processing.CDRBuffer;
+import processing.CDREnricher;
+import processing.DuplicateDetector;
 import smsc.SmscCdr;
 
 public class FtpProcessor {
 
     private final Decoder decoder = new Decoder();
+    private final DuplicateDetector dedup      = new DuplicateDetector();
+    private final CDREnricher       enricher   = new CDREnricher(); // loads CSV once
+    private final CDRAggregator aggregator = new CDRAggregator();
+    private final CDRBuffer buffer     = new CDRBuffer(
+            () -> mediation.CSVFormatter.format() // Person C's trigger
+    );
 
     public void process(byte[] data) {
 
@@ -21,6 +31,10 @@ public class FtpProcessor {
                 System.out.println("REJECTED CDR");
                 return;
             }
+            if (dedup.isDuplicate(cdr)) return;                      // dedup
+            CDREnricher.SubscriberInfo info = enricher.lookup(getDialA(cdr)); // enrich — pass msisdn String
+            aggregator.aggregate(cdr, info.hplmn());                  // aggregate
+            buffer.add(cdr);                                          // buffer → sorts → DB → CSV
 
             // 3. Output
             //printCdr(cdr);
@@ -79,6 +93,14 @@ public class FtpProcessor {
         }
 
         return false;
+    }
+
+    // Extracts dial_a (calling MSISDN) from any CDR type — used for enrichment lookup
+    private String getDialA(Object cdr) {
+        if (cdr instanceof MscVoiceCdr m) return m.callingNumber;
+        if (cdr instanceof SmscCdr s)     return s.senderMSISDN;
+        if (cdr instanceof PgwDataCdr p)  return p.servedMSISDN;
+        return null;
     }
 
     // ================= OUTPUT =================
