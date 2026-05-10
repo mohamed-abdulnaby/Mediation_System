@@ -15,7 +15,8 @@ public class FtpProcessor {
     private final CDREnricher       enricher   = new CDREnricher(); // loads CSV once
     private final CDRAggregator aggregator = new CDRAggregator();
     private final CDRBuffer buffer     = new CDRBuffer(
-            () -> mediation.CSVFormatter.format() // Person C's trigger
+            () -> mediation.CSVFormatter.format(), // trigger
+            aggregator                              // so buffer can flush aggregation to DB
     );
 
     public void process(byte[] data) {
@@ -34,7 +35,7 @@ public class FtpProcessor {
             if (dedup.isDuplicate(cdr)) return;                      // dedup
             CDREnricher.SubscriberInfo info = enricher.lookup(getDialA(cdr)); // enrich — pass msisdn String
             aggregator.aggregate(cdr, info.hplmn());                  // aggregate
-            buffer.add(cdr);                                          // buffer → sorts → DB → CSV
+            buffer.add(cdr, info);                                          // buffer → sorts → DB → CSV
 
             // 3. Output
             //printCdr(cdr);

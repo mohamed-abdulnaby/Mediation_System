@@ -8,31 +8,49 @@ public class CDRBuffer {
     private static final int  BATCH_SIZE         = 100;
     private static final long FLUSH_INTERVAL_SEC = 5;
 
-    private final LinkedBlockingQueue<Object> queue = new LinkedBlockingQueue<>(10_000);
-    private final CDRSorter sorter = new CDRSorter();
-    private final Runnable onFlush; // Injected: triggers Person C's CSVFormatter
+    // Wrapper to keep CDR and its enrichment info together through the queue
+    private record CdrEntry(Object cdr, CDREnricher.SubscriberInfo info) {}
 
-    public CDRBuffer(Runnable onFlush) {
-        this.onFlush = onFlush;
+    private final LinkedBlockingQueue<CdrEntry> queue = new LinkedBlockingQueue<>(10_000);
+    private final CDRSorter      sorter;
+    private final CDRAggregator  aggregator;
+    private final Runnable       onFlush; // triggers Person C's CSVFormatter
+
+    public CDRBuffer(Runnable onFlush, CDRAggregator aggregator) {
+        this.onFlush    = onFlush;
+        this.aggregator = aggregator;
+        this.sorter     = new CDRSorter();
         startTimedFlusher();
     }
 
-    public void add(Object cdr) {
-        if (!queue.offer(cdr)) {
-            System.err.println("CdrBuffer: FULL — emergency flush");
+    public void add(Object cdr, CDREnricher.SubscriberInfo info) {
+        CdrEntry entry = new CdrEntry(cdr, info);
+        if (!queue.offer(entry)) {
+            System.err.println("CDRBuffer: FULL — emergency flush");
             flush();
-            queue.offer(cdr);
+            queue.offer(entry);
         }
         if (queue.size() >= BATCH_SIZE) flush();
     }
 
     public synchronized void flush() {
         if (queue.isEmpty()) return;
-        List<Object> batch = new ArrayList<>();
+        List<CdrEntry> batch = new ArrayList<>();
         queue.drainTo(batch, BATCH_SIZE);
-        List<Object> sorted = sorter.sort(batch);
-        for (Object cdr : sorted) CDR_DAO.insertCdr(cdr); // persist to Mediation NeonDB
-        if (onFlush != null) onFlush.run(); // trigger Person C
+
+        // Sort by timestamp before persisting
+        batch.sort(Comparator.comparing(e -> sorter.getTimestamp(e.cdr())));
+
+        // Persist each CDR with its paired enrichment info
+        for (CdrEntry entry : batch) {
+            CDR_DAO.insertCdr(entry.cdr(), entry.info(), null);
+        }
+
+        // Flush aggregation buckets to DB
+        aggregator.flushToDB();
+
+        // Trigger Person C's CSV generation + RMI send
+        if (onFlush != null) onFlush.run();
     }
 
     private void startTimedFlusher() {

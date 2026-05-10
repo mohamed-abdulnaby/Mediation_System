@@ -7,9 +7,6 @@ import pgw.PgwDataCdr;
 
 public class CDR_DAO {
 
-    public static void insertCdr(Object cdr) {
-        insertCdr(cdr, new CDREnricher().lookup(getDialA(cdr)), null);
-    }
 
     public static void insertCdr(Object cdr,
                                  CDREnricher.SubscriberInfo info,

@@ -1,6 +1,8 @@
 package processing;
 
 import msc.MscVoiceCdr;
+import smsc.SmscCdr;
+import pgw.PgwDataCdr;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,7 +32,18 @@ public class CDRAggregator {
             update(daily,  "MSC_VOICE|" + m.callingNumber + "|D|" + bucket(m.callStartTime, "D"),
                     m.callingNumber, "MSC_VOICE", r -> { r.totalRecords++; r.totalDuration += m.callDuration; });
         }
-        // Same pattern for SmscCdr (totalMessages++) and PgwDataCdr (totalBytes += p.totalBytes)
+        if (cdr instanceof SmscCdr s) {
+            update(hourly, "SMSC_SMS|" + s.senderMSISDN + "|H|" + bucket(s.submissionTime, "H"),
+                    s.senderMSISDN, "SMSC_SMS", r -> { r.totalRecords++; r.totalMessages++; });
+            update(daily,  "SMSC_SMS|" + s.senderMSISDN + "|D|" + bucket(s.submissionTime, "D"),
+                    s.senderMSISDN, "SMSC_SMS", r -> { r.totalRecords++; r.totalMessages++; });
+        }
+        if (cdr instanceof PgwDataCdr p) {
+            update(hourly, "PGW_DATA|" + p.servedMSISDN + "|H|" + bucket(p.startTime, "H"),
+                    p.servedMSISDN, "PGW_DATA", r -> { r.totalRecords++; r.totalBytes += p.totalBytes; });
+            update(daily,  "PGW_DATA|" + p.servedMSISDN + "|D|" + bucket(p.startTime, "D"),
+                    p.servedMSISDN, "PGW_DATA", r -> { r.totalRecords++; r.totalBytes += p.totalBytes; });
+        }
     }
 
     private void update(Map<String, AggregationResult> map, String key,
@@ -51,7 +64,16 @@ public class CDRAggregator {
     public Map<String, AggregationResult> getDaily()  { return daily; }
 
     public void flushToDB() {
-        // CdrDao.insertAggregated(...) for each entry then clear
+        hourly.forEach((key, r) -> {
+            String[] parts = key.split("\\|");
+            String windowStart = parts.length > 3 ? parts[3] : "";
+            CDR_DAO.insertAggregated(r, "HOURLY", windowStart, windowStart + ":59:59");
+        });
+        daily.forEach((key, r) -> {
+            String[] parts = key.split("\\|");
+            String windowStart = parts.length > 3 ? parts[3] : "";
+            CDR_DAO.insertAggregated(r, "DAILY", windowStart, windowStart + "T23:59:59");
+        });
         hourly.clear();
         daily.clear();
     }

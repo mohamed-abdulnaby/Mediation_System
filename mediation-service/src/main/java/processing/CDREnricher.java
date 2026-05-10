@@ -36,19 +36,13 @@ public class CDREnricher {
                         row.length > 5 ? row[5].trim() : "UNKNOWN"
                 ));
             }
-            System.out.println("CDREnricher: Loaded " + cache.size() + "Subscribers from CSV");
+            System.out.println("CDREnricher: Loaded " + cache.size() + " Subscribers from CSV");
         } catch (Exception e) {
             System.err.println("CDREnricher: Warning - Failed to load subscribers.csv: " + e.getMessage());
         }
     }
 
-    public Object enrich(Object cdr) {
-        String lookupkey = extractLookupKey(cdr);
-        SubscriberInfo info = cache.getOrDefault(lookupkey,
-                new SubscriberInfo("Unknown", "Unknown", "Standard", "UNKNOWN"));
-        System.out.println("Enriched CDR: carrier=" + info.carrier() + ", region=" + info.region() + ", hplmn=" + info.hplmn());
-        return cdr; //returns the enriched CDR
-    }
+
 
     private String extractLookupKey(Object cdr) {
         return switch (cdr){
