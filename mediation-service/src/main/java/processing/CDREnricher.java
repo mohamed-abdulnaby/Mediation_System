@@ -12,7 +12,7 @@ import java.util.Map;
 
 public class CDREnricher {
     // record to hold the enrichment data
-    public record SubscriberInfo(String carrier, String region, String SubscriberType) {}
+    public record SubscriberInfo(String carrier, String region, String subscriberType, String hplmn) {}
 
     // The In-memory cache that will load ONLY 1 time at the startup
     private final Map<String, SubscriberInfo> cache = new HashMap<>();
@@ -30,7 +30,11 @@ public class CDREnricher {
             String[] row;
             while((row = reader.readNext()) != null){
                 // msisdn, carrier, region, subscriber_type, status
-                cache.put(row[0].trim(), new SubscriberInfo(row[1].trim(), row[2].trim(), row[3].trim()));
+                // msisdn, carrier, region, subscriber_type, status, hplmn
+                cache.put(row[0].trim(), new SubscriberInfo(
+                        row[1].trim(), row[2].trim(), row[3].trim(),
+                        row.length > 5 ? row[5].trim() : "UNKNOWN"
+                ));
             }
             System.out.println("CDREnricher: Loaded " + cache.size() + "Subscribers from CSV");
         } catch (Exception e) {
@@ -40,14 +44,9 @@ public class CDREnricher {
 
     public Object enrich(Object cdr) {
         String lookupkey = extractLookupKey(cdr);
-        SubscriberInfo info = cache.getOrDefault(lookupkey, new SubscriberInfo("Unknown", "Unknown", "Standard"));
-        if (cdr instanceof MscVoiceCdr msc){
-            // MSC has no dedicated carrier field yet — add to CSVFormatter/DB later
-            // Store enrichment as metadata (can extend MscVoiceCdr or use a wrapper)
-            System.out.println("Enriched MSC CDR: carrier=" + info.carrier() + ", region=" + info.region());
-        }
-        // Same for SmscCdr and PgwDataCdr
-
+        SubscriberInfo info = cache.getOrDefault(lookupkey,
+                new SubscriberInfo("Unknown", "Unknown", "Standard", "UNKNOWN"));
+        System.out.println("Enriched CDR: carrier=" + info.carrier() + ", region=" + info.region() + ", hplmn=" + info.hplmn());
         return cdr; //returns the enriched CDR
     }
 
@@ -61,6 +60,6 @@ public class CDREnricher {
         };
     }
     public SubscriberInfo lookup(String msisdn){
-        return cache.getOrDefault(msisdn, new SubscriberInfo("Unknown", "Unknown", "Standard"));
+        return cache.getOrDefault(msisdn, new SubscriberInfo("Unknown", "Unknown", "Standard", "UNKNOWN"));
     }
 }

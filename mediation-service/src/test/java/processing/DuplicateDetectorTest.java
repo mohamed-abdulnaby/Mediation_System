@@ -13,7 +13,7 @@ class DuplicateDetectorTest {
         cdr.callStartTime="2024-01-15T09:30:00";
 
         DuplicateDetector detector = new DuplicateDetector();
-        assertFalse(detector.isDupliacte(cdr),"First appearance should not be a duplicate");
-        assertTrue(detector.isDupliacte(cdr), "Second appearance of the same CDR must be a duplicate");
+        assertFalse(detector.isDuplicate(cdr),"First appearance should not be a duplicate");
+        assertTrue(detector.isDuplicate(cdr), "Second appearance of the same CDR must be a duplicate");
     }
 }
