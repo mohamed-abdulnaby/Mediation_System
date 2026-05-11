@@ -251,28 +251,29 @@ cd Mediation_System
 Always build from the **root** directory to resolve cross-module dependencies:
 
 ```bash
-mvn clean install
+./mvnw clean install -DskipTests
 ```
 
-### 3. Configure Environment Variables
+### 3. Configure Credentials
 
-Create or update your `docker-compose.yml` environment sections, or set these in your IntelliJ Run Configuration for local development:
+**For Docker/Podman runs** — copy the example and fill in your values:
 
-```env
-# Mediation NeonDB
-DB_URL=jdbc:postgresql://<your-neondb-host>/neondb?sslmode=require
-DB_USER=<your-neondb-user>
-DB_PASSWORD=<your-neondb-password>
-
-# FTP Connection
-FTP_HOST=ftp-server
-FTP_USER=testuser
-FTP_PASS=testpass
-
-# Downstream RMI hosts
-BILLING_RMI_HOST=billing
-FRAUD_RMI_HOST=fraud
+```bash
+cp .env.example .env
+# Edit .env with your real NeonDB credentials
 ```
+
+**For native IntelliJ runs** — copy the DB properties example:
+
+```bash
+cp mediation-service/src/main/resources/db.properties.example \
+   mediation-service/src/main/resources/db.properties
+# Edit db.properties with your real NeonDB credentials
+# Also set FTP_HOST, FTP_USER, FTP_PASS, BILLING_RMI_HOST, FRAUD_RMI_HOST
+# in the IntelliJ Run Configuration → Environment Variables
+```
+
+> ⚠️ Both `db.properties` and `.env` are gitignored — never commit them.
 
 ### 4. Initialize Mediation NeonDB
 
@@ -280,10 +281,23 @@ Run the SQL statements from the [Database Architecture](#-database-architecture)
 
 ### 5. Run with Docker / Podman
 
-#### Full Stack
+#### Full Stack (clean start — required after any `--build`)
 
 ```bash
-podman compose up
+# Stop and remove old containers + volumes (prevents FTP user-already-exists error)
+podman-compose down -v
+
+# Build and start all services
+podman-compose up -d --build
+```
+
+#### Access the Admin UI
+
+Once the `mediation` container is running:
+
+```
+http://localhost:8080          ← Role Management UI
+http://localhost:8080/api/roles ← REST API (JSON)
 ```
 
 #### Development Mode (Partial Stack — recommended for Person B)
@@ -291,15 +305,11 @@ podman compose up
 Start only the infrastructure and simulators, then run `mediation-service` locally from IntelliJ for live debugging:
 
 ```bash
-# One-time Podman setup for Linux
-sudo sysctl net.ipv4.ip_unprivileged_port_start=21
-sudo loginctl enable-linger $USER
-
 # Start simulators and FTP server only
-podman compose up ftp-server msc smsc pgw
+podman-compose up -d ftp-server msc smsc pgw
 ```
 
-Then run `mediation.Main` from IntelliJ with the environment variables configured.
+Then run `mediation.Main` from IntelliJ with the environment variables set in the Run Configuration.
 
 ---
 
@@ -363,17 +373,19 @@ mvn test
 
 ## 🐳 Docker Services
 
-| Service | Image | Port | Role |
+| Service | Image | Host Port | Role |
 |---|---|---|---|
 | `ftp-server` | `stilliard/pure-ftpd` | `21`, `30000-30009` | CDR file collection point |
-| `msc` | `mediation_system_msc` | `8080` | MSC Voice CDR simulator |
-| `smsc` | `mediation_system_smsc` | `8080` | SMSC SMS CDR simulator |
-| `pgw` | `mediation_system_pgw` | `8080` | PGW Data CDR simulator |
-| `mediation` | `mediation_system_mediation` | `8080` | Core mediation engine |
-| `billing` | `mediation_system_billing` | `1099` | Billing RMI file receiver |
-| `fraud` | `mediation_system_fraud` | `1099` | Fraud RMI file receiver |
+| `msc` | `mediation_system_msc` | *(internal only)* | MSC Voice CDR simulator |
+| `smsc` | `mediation_system_smsc` | *(internal only)* | SMSC SMS CDR simulator |
+| `pgw` | `mediation_system_pgw` | *(internal only)* | PGW Data CDR simulator |
+| `mediation` | `mediation_system_mediation` | **`8080`** → Roles UI + API | Core mediation engine |
+| `billing` | `mediation_system_billing` | *(internal `1099`)* | Billing RMI file receiver |
+| `fraud` | `mediation_system_fraud` | *(internal `1099`)* | Fraud RMI file receiver |
 
-> **Note for Podman users:** Run `sudo sysctl net.ipv4.ip_unprivileged_port_start=21` before starting the stack to allow binding to port 21 in rootless mode.
+> **Podman note:** `privileged: true` is set on `ftp-server` in `docker-compose.yml` to allow binding port 21 in rootless Podman. No manual `sysctl` change is needed.
+
+> **Clean restart note:** Run `podman-compose down -v` before `up --build` to clear the FTP volume and prevent a user-already-exists error on re-creation.
 
 ---
 
