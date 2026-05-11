@@ -66,6 +66,7 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 .role-desc{color:var(--text-muted);font-size:0.85rem;}
 .actions{display:flex;align-items:center;gap:0.25rem;}
 .badge{display:inline-flex;padding:0.2rem 0.65rem;border-radius:100px;font-size:0.72rem;font-weight:600;text-transform:uppercase;}
+/* used dynamically via JS — render() sets class="badge badge-{level}" from the levelBadge map */
 .badge-blue{background:rgba(29,107,224,0.15);color:var(--blue-light);border:1px solid rgba(29,107,224,0.25);}
 .badge-emerald{background:rgba(16,185,129,0.12);color:#10b981;border:1px solid rgba(16,185,129,0.2);}
 .badge-gold{background:rgba(245,158,11,0.12);color:#f59e0b;border:1px solid rgba(245,158,11,0.2);}
@@ -76,6 +77,7 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 .empty-title{font-size:1rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.5rem;}
 .loading-row td{text-align:center;color:var(--text-muted);padding:3rem;}
 .modal-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
+/* .open added dynamically by openCreateModal() / openEditModal() via classList.add('open') */
 .modal-overlay.open{display:flex;}
 .modal{background:linear-gradient(135deg,rgba(20,20,35,0.98),rgba(10,10,20,0.98));border:1px solid var(--border-bright);border-radius:var(--radius-lg);box-shadow:var(--shadow);width:100%;max-width:480px;padding:2rem;animation:modalIn 0.25s cubic-bezier(0.16,1,0.3,1);}
 @keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);}}
@@ -93,6 +95,7 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 .input::placeholder,.textarea::placeholder{color:var(--text-muted);}
 .modal-footer{display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.75rem;}
 .confirm-overlay{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
+/* .open added dynamically by openDeleteConfirm() via classList.add('open') */
 .confirm-overlay.open{display:flex;}
 .confirm-box{background:linear-gradient(135deg,rgba(20,20,35,0.99),rgba(10,10,20,0.99));border:1px solid rgba(239,68,68,0.25);border-radius:var(--radius-lg);box-shadow:0 20px 60px rgba(0,0,0,0.9);max-width:380px;width:100%;padding:2rem;animation:modalIn 0.2s cubic-bezier(0.16,1,0.3,1);text-align:center;}
 .confirm-icon{font-size:2.5rem;margin-bottom:1rem;}
@@ -100,16 +103,20 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 .confirm-sub{color:var(--text-muted);font-size:0.875rem;margin-bottom:1.5rem;}
 .confirm-actions{display:flex;gap:0.75rem;justify-content:center;}
 .toast-container{position:fixed;top:1.25rem;right:1.25rem;z-index:400;display:flex;flex-direction:column;gap:0.5rem;}
+/* .toast, .toast.success, .toast.error — all created dynamically by showToast():
+   document.createElement('div'); t.className = `toast ${type}` (type = 'success' | 'error') */
 .toast{display:flex;align-items:center;gap:0.75rem;padding:0.85rem 1.25rem;background:rgba(15,15,25,0.97);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-premium);font-size:0.875rem;font-weight:500;animation:toastIn 0.3s cubic-bezier(0.16,1,0.3,1);min-width:260px;}
 .toast.success{border-color:rgba(16,185,129,0.3);}
 .toast.error{border-color:rgba(239,68,68,0.3);}
 .toast-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .toast.success .toast-dot{background:var(--success);}
 .toast.error .toast-dot{background:var(--danger);}
+/* translateX is a valid CSS transform function — not a typo */
 @keyframes toastIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
 .footer{border-top:1px solid var(--border);padding:1.25rem 0;text-align:center;font-size:0.78rem;color:var(--text-muted);}
 .api-status{display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;color:var(--text-muted);}
 .status-dot{width:7px;height:7px;border-radius:50%;background:var(--text-muted);}
+/* .ok / .err applied dynamically by setStatus() via statusDot.className = 'status-dot ok/err' */
 .status-dot.ok{background:var(--success);}
 .status-dot.err{background:var(--danger);}
 </style>
