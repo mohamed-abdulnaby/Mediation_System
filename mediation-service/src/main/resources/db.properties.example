@@ -1,0 +1,15 @@
+# ─────────────────────────────────────────────────────────────────────
+# db.properties.example
+#
+# This file documents the required database configuration keys.
+# Copy this file to db.properties and fill in your real credentials.
+#
+#   cp db.properties.example db.properties
+#
+# db.properties is gitignored and must NEVER be committed.
+# For Docker runs, credentials are passed via the .env file instead.
+# ─────────────────────────────────────────────────────────────────────
+
+db.url=jdbc:postgresql://<neon-host>/<db-name>?sslmode=require
+db.user=<neondb-username>
+db.password=<neondb-password>
