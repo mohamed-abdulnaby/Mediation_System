@@ -3,6 +3,7 @@ services:
   ftp-server:
     image: stilliard/pure-ftpd
     container_name: ftp-server
+    privileged: true   # Required for rootless Podman to bind port 21 (privileged port < 1024)
     ports:
       - "21:21"
       - "30000-30009:30000-30009"
