@@ -34,11 +34,22 @@
             <artifactId>smsc-service</artifactId>
             <version>1.0</version>
         </dependency>
-        <!-- Source: https://mvnrepository.com/artifact/com.zaxxer/HikariCP -->
+        <!-- HikariCP connection pool — keeps a warm pool of DB connections
+             so each CDR insert doesn't pay the TCP + TLS handshake cost -->
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
             <version>7.0.2</version>
+            <scope>compile</scope>
+        </dependency>
+        <!-- PostgreSQL JDBC driver — must be on the classpath at runtime so
+             HikariCP can load org.postgresql.Driver via Class.forName().
+             Without this the fat JAR starts but every DB call throws
+             ExceptionInInitializerError: Failed to load driver class. -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.3</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
