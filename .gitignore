@@ -3,9 +3,21 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 .kotlin
-person_b_complete_roadmap.md
 
+# ── Credential & secret files — NEVER commit these ───────────────────
+# Local database config (contains plaintext credentials)
+**/db.properties
 
+# Docker Compose local environment overrides
+.env
+.env.local
+.env.*.local
+
+# Log files (may contain DB URLs, stack traces with credentials)
+*.log
+logs/
+
+# ── IDE files ─────────────────────────────────────────────────────────
 ### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml
@@ -38,4 +50,8 @@ build/
 .vscode/
 
 ### Mac OS ###
-.DS_Storedb.properties
+.DS_Store
+
+# ── Temporary planning/work files ────────────────────────────────────
+person_b_complete_roadmap.md
+remaining_issues.md
