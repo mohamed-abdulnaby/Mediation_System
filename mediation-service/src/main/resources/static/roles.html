@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Role Management — Mediation System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --blue: #1d6be0; --blue-light: #3b82f6; --blue-dim: rgba(29,107,224,0.15);
+  --bg: #000000; --bg-secondary: #050508;
+  --border: rgba(255,255,255,0.1); --border-bright: rgba(255,255,255,0.18);
+  --text-primary: #ffffff; --text-secondary: #b0b0d0; --text-muted: #64748b;
+  --radius: 12px; --radius-lg: 20px; --radius-sm: 8px;
+  --shadow: 0 20px 50px rgba(0,0,0,0.9); --shadow-premium: 0 10px 40px rgba(0,0,0,0.6);
+  --success: #10b981; --danger: #ef4444; --gold: #f59e0b;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);}
+body{color:var(--text-primary);font-family:'Inter',system-ui,sans-serif;overflow-x:hidden;line-height:1.5;-webkit-font-smoothing:antialiased;}
+.app{
+  background-color:var(--bg);
+  background-image:radial-gradient(circle at 80% 10%,rgba(29,107,224,0.28),transparent 800px),radial-gradient(circle at 20% 90%,rgba(59,130,246,0.1),transparent 600px),linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px);
+  background-size:100% 100%,100% 100%,60px 60px,60px 60px;background-attachment:fixed;
+  display:flex;flex-direction:column;min-height:100vh;
+}
+.container{max-width:1400px;margin:0 auto;padding:0 1.5rem;}
+.navbar{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+.nav-inner{display:flex;align-items:center;height:64px;gap:1rem;}
+.nav-brand{display:flex;align-items:center;gap:0.75rem;text-decoration:none;}
+.nav-logo-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--blue-light));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:#fff;box-shadow:0 0 20px rgba(29,107,224,0.4);}
+.nav-brand-text{font-weight:700;font-size:1rem;color:var(--text-primary);}
+.nav-brand-sub{font-size:0.75rem;color:var(--text-muted);}
+.nav-spacer{flex:1;}
+.nav-badge{background:var(--blue-dim);border:1px solid rgba(29,107,224,0.3);color:var(--blue-light);padding:0.25rem 0.75rem;border-radius:100px;font-size:0.75rem;font-weight:600;}
+.main-content{flex:1;padding:2.5rem 0;}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;}
+.page-title{font-size:2rem;font-weight:800;letter-spacing:-0.02em;}
+.page-title span{background:linear-gradient(135deg,var(--blue),var(--blue-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.page-sub{color:var(--text-muted);font-size:0.9rem;margin-top:0.25rem;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.65rem 1.25rem;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;transition:all 0.2s;border:none;font-size:0.9rem;font-family:inherit;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:var(--blue-light);transform:translateY(-1px);box-shadow:0 4px 20px rgba(29,107,224,0.4);}
+.btn-secondary{background:rgba(255,255,255,0.05);color:#fff;border:1px solid var(--border);}
+.btn-secondary:hover{background:rgba(255,255,255,0.08);transform:translateY(-1px);}
+.btn-danger{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.2);}
+.btn-danger:hover{background:rgba(239,68,68,0.25);}
+.btn-icon{background:transparent;color:var(--text-secondary);padding:0.4rem 0.5rem;border-radius:6px;border:none;cursor:pointer;transition:all 0.2s;font-size:1rem;line-height:1;}
+.btn-icon:hover{background:rgba(255,255,255,0.07);color:#fff;}
+.btn-icon.edit:hover{color:var(--blue-light);}
+.btn-icon.delete:hover{color:var(--danger);}
+.table-wrapper{background:rgba(22,22,34,0.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.table-header{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);}
+.table-title{font-weight:700;font-size:0.95rem;}
+.table-count{background:var(--blue-dim);color:var(--blue-light);padding:0.2rem 0.6rem;border-radius:100px;font-size:0.75rem;font-weight:600;}
+table{width:100%;border-collapse:collapse;font-size:0.9rem;}
+th{text-align:left;padding:0.85rem 1.25rem;background:rgba(255,255,255,0.03);color:var(--text-muted);font-weight:600;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--border);}
+td{padding:0.9rem 1.25rem;border-bottom:1px solid var(--border);color:var(--text-primary);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr{transition:background 0.15s;}
+tr:hover td{background:rgba(255,255,255,0.02);}
+.id-badge{background:rgba(255,255,255,0.05);padding:0.2rem 0.55rem;border-radius:6px;font-size:0.8rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;}
+.role-name{font-weight:600;}
+.role-desc{color:var(--text-muted);font-size:0.85rem;}
+.actions{display:flex;align-items:center;gap:0.25rem;}
+.badge{display:inline-flex;padding:0.2rem 0.65rem;border-radius:100px;font-size:0.72rem;font-weight:600;text-transform:uppercase;}
+.badge-blue{background:rgba(29,107,224,0.15);color:var(--blue-light);border:1px solid rgba(29,107,224,0.25);}
+.badge-emerald{background:rgba(16,185,129,0.12);color:#10b981;border:1px solid rgba(16,185,129,0.2);}
+.badge-gold{background:rgba(245,158,11,0.12);color:#f59e0b;border:1px solid rgba(245,158,11,0.2);}
+.badge-violet{background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.2);}
+.badge-slate{background:rgba(100,116,139,0.12);color:#94a3b8;border:1px solid rgba(100,116,139,0.2);}
+.empty-state{text-align:center;padding:4rem 2rem;color:var(--text-muted);}
+.empty-icon{font-size:3rem;margin-bottom:1rem;opacity:0.4;}
+.empty-title{font-size:1rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.5rem;}
+.loading-row td{text-align:center;color:var(--text-muted);padding:3rem;}
+.modal-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:linear-gradient(135deg,rgba(20,20,35,0.98),rgba(10,10,20,0.98));border:1px solid var(--border-bright);border-radius:var(--radius-lg);box-shadow:var(--shadow);width:100%;max-width:480px;padding:2rem;animation:modalIn 0.25s cubic-bezier(0.16,1,0.3,1);}
+@keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem;}
+.modal-title{font-size:1.2rem;font-weight:700;}
+.modal-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.3rem;padding:0.25rem;line-height:1;transition:color 0.2s;}
+.modal-close:hover{color:#fff;}
+.form-group{margin-bottom:1.25rem;}
+.label{display:block;font-size:0.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.45rem;text-transform:uppercase;letter-spacing:0.04em;}
+.input,.textarea,.select{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.7rem 1rem;color:#fff;font-size:0.9rem;transition:all 0.2s;font-family:inherit;}
+.textarea{resize:vertical;min-height:90px;}
+.select{cursor:pointer;}
+.select option{background:#0d0d1a;color:#fff;}
+.input:focus,.textarea:focus,.select:focus{outline:none;border-color:var(--blue);background:rgba(255,255,255,0.06);box-shadow:0 0 0 4px rgba(29,107,224,0.12);}
+.input::placeholder,.textarea::placeholder{color:var(--text-muted);}
+.modal-footer{display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.75rem;}
+.confirm-overlay{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
+.confirm-overlay.open{display:flex;}
+.confirm-box{background:linear-gradient(135deg,rgba(20,20,35,0.99),rgba(10,10,20,0.99));border:1px solid rgba(239,68,68,0.25);border-radius:var(--radius-lg);box-shadow:0 20px 60px rgba(0,0,0,0.9);max-width:380px;width:100%;padding:2rem;animation:modalIn 0.2s cubic-bezier(0.16,1,0.3,1);text-align:center;}
+.confirm-icon{font-size:2.5rem;margin-bottom:1rem;}
+.confirm-title{font-weight:700;font-size:1.1rem;margin-bottom:0.5rem;}
+.confirm-sub{color:var(--text-muted);font-size:0.875rem;margin-bottom:1.5rem;}
+.confirm-actions{display:flex;gap:0.75rem;justify-content:center;}
+.toast-container{position:fixed;top:1.25rem;right:1.25rem;z-index:400;display:flex;flex-direction:column;gap:0.5rem;}
+.toast{display:flex;align-items:center;gap:0.75rem;padding:0.85rem 1.25rem;background:rgba(15,15,25,0.97);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-premium);font-size:0.875rem;font-weight:500;animation:toastIn 0.3s cubic-bezier(0.16,1,0.3,1);min-width:260px;}
+.toast.success{border-color:rgba(16,185,129,0.3);}
+.toast.error{border-color:rgba(239,68,68,0.3);}
+.toast-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.toast.success .toast-dot{background:var(--success);}
+.toast.error .toast-dot{background:var(--danger);}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+.footer{border-top:1px solid var(--border);padding:1.25rem 0;text-align:center;font-size:0.78rem;color:var(--text-muted);}
+.api-status{display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;color:var(--text-muted);}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--text-muted);}
+.status-dot.ok{background:var(--success);}
+.status-dot.err{background:var(--danger);}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="navbar">
+    <div class="nav-inner container">
+      <a href="/" class="nav-brand">
+        <div class="nav-logo-mark">M</div>
+        <div><div class="nav-brand-text">Mediation System</div><div class="nav-brand-sub">Admin Console</div></div>
+      </a>
+      <div class="nav-spacer"></div>
+      <div class="api-status" id="apiStatus"><span class="status-dot" id="statusDot"></span><span id="statusText">Connecting…</span></div>
+      &nbsp;&nbsp;
+      <span class="nav-badge">Role Management</span>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="container">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title"><span>Role</span> Management</h1>
+          <p class="page-sub">Create, update, and remove system roles and their access levels.</p>
+        </div>
+        <button class="btn btn-primary" id="createBtn" onclick="openCreateModal()">+ Create Role</button>
+      </div>
+
+      <div class="table-wrapper">
+        <div class="table-header">
+          <span class="table-title">All Roles</span>
+          <span class="table-count" id="roleCount">—</span>
+        </div>
+        <table>
+          <thead><tr><th>#</th><th>Role Name</th><th>Description</th><th>Access Level</th><th>Actions</th></tr></thead>
+          <tbody id="rolesTableBody">
+            <tr class="loading-row"><td colspan="5">Loading roles from database…</td></tr>
+          </tbody>
+        </table>
+        <div class="empty-state" id="emptyState" style="display:none;">
+          <div class="empty-icon">🔐</div>
+          <div class="empty-title">No roles defined yet</div>
+          <p style="font-size:0.85rem;">Click "Create Role" to add your first role.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer"><div class="container">© 2026 Mediation System — ITI Graduation Project</div></footer>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle">Create Role</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group"><label class="label" for="roleName">Role Name</label><input class="input" id="roleName" placeholder="e.g. Billing Operator" type="text"/></div>
+    <div class="form-group"><label class="label" for="roleDesc">Description</label><textarea class="textarea" id="roleDesc" placeholder="What can this role do?"></textarea></div>
+    <div class="form-group">
+      <label class="label" for="accessLevel">Access Level</label>
+      <select class="select" id="accessLevel">
+        <option value="read-only">Read Only</option>
+        <option value="operator">Operator</option>
+        <option value="manager">Manager</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRole()">Save Role</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon">⚠️</div>
+    <div class="confirm-title">Delete Role?</div>
+    <p class="confirm-sub" id="confirmText">This action cannot be undone.</p>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+const API = '/api/roles'; // served by RolesHandler on port 8080
+const levelBadge = { admin:'badge-blue', manager:'badge-violet', operator:'badge-emerald', 'read-only':'badge-slate' };
+const levelLabel  = { admin:'Admin', manager:'Manager', operator:'Operator', 'read-only':'Read Only' };
+
+let editingId   = null;
+let deletingId  = null;
+
+// ── API calls ────────────────────────────────────────────────────────
+async function apiFetch(url, opts = {}) {
+  opts.headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  const res = await fetch(url, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || 'Request failed');
+  }
+  return res.json();
+}
+
+async function loadRoles() {
+  try {
+    const roles = await apiFetch(API);
+    setStatus(true);
+    render(roles);
+  } catch (e) {
+    setStatus(false);
+    document.getElementById('rolesTableBody').innerHTML =
+      '<tr class="loading-row"><td colspan="5">⚠ Could not connect to API: ' + escHtml(e.message) + '</td></tr>';
+  }
+}
+
+async function saveRole() {
+  const name  = document.getElementById('roleName').value.trim();
+  const desc  = document.getElementById('roleDesc').value.trim();
+  const level = document.getElementById('accessLevel').value;
+  if (!name) { showToast('Role name is required.', 'error'); return; }
+
+  try {
+    if (editingId !== null) {
+      await apiFetch(API + '/' + editingId, { method:'PUT', body: JSON.stringify({ name, description: desc, access_level: level }) });
+      showToast('Role "' + name + '" updated.', 'success');
+    } else {
+      await apiFetch(API, { method:'POST', body: JSON.stringify({ name, description: desc, access_level: level }) });
+      showToast('Role "' + name + '" created.', 'success');
+    }
+    closeModal();
+    loadRoles();
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function confirmDelete() {
+  try {
+    const result = await apiFetch(API + '/' + deletingId, { method:'DELETE' });
+    showToast('Role deleted.', 'success');
+    closeConfirm();
+    loadRoles();
+  } catch (e) {
+    showToast(e.message, 'error');
+    closeConfirm();
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────
+function render(roles) {
+  const tbody = document.getElementById('rolesTableBody');
+  const empty = document.getElementById('emptyState');
+  document.getElementById('roleCount').textContent = roles.length + (roles.length === 1 ? ' role' : ' roles');
+
+  if (!roles.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = roles.map(r => `
+    <tr>
+      <td><span class="id-badge">#${r.id}</span></td>
+      <td><span class="role-name">${escHtml(r.name)}</span></td>
+      <td><span class="role-desc">${escHtml(r.description || '—')}</span></td>
+      <td><span class="badge ${levelBadge[r.access_level]||'badge-slate'}">${levelLabel[r.access_level]||r.access_level}</span></td>
+      <td><div class="actions">
+        <button class="btn-icon edit" onclick="openEditModal(${r.id},'${escHtml(r.name)}','${escHtml(r.description||'')}','${r.access_level}')" title="Edit">✏️</button>
+        <button class="btn-icon delete" onclick="openDeleteConfirm(${r.id},'${escHtml(r.name)}')" title="Delete">🗑️</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+// ── Modals ────────────────────────────────────────────────────────────
+function openCreateModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Create Role';
+  document.getElementById('roleName').value = '';
+  document.getElementById('roleDesc').value = '';
+  document.getElementById('accessLevel').value = 'read-only';
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('roleName').focus(), 50);
+}
+function openEditModal(id, name, desc, level) {
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Role';
+  document.getElementById('roleName').value  = name;
+  document.getElementById('roleDesc').value  = desc;
+  document.getElementById('accessLevel').value = level;
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('roleName').focus(), 50);
+}
+function closeModal()   { document.getElementById('modalOverlay').classList.remove('open'); }
+function openDeleteConfirm(id, name) {
+  deletingId = id;
+  document.getElementById('confirmText').textContent = `You are about to delete the role "${name}". This cannot be undone.`;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+function closeConfirm() { document.getElementById('confirmOverlay').classList.remove('open'); deletingId = null; }
+
+// ── Helpers ───────────────────────────────────────────────────────────
+function setStatus(ok) {
+  document.getElementById('statusDot').className  = 'status-dot ' + (ok ? 'ok' : 'err');
+  document.getElementById('statusText').textContent = ok ? 'Connected to NeonDB' : 'DB Disconnected';
+}
+function showToast(msg, type = 'success') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span class="toast-dot"></span>${escHtml(msg)}`;
+  c.appendChild(t);
+  setTimeout(() => { t.style.cssText='opacity:0;transform:translateX(20px);transition:all 0.3s'; setTimeout(()=>t.remove(),300); }, 3200);
+}
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+document.getElementById('modalOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+document.getElementById('confirmOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeConfirm(); });
+document.addEventListener('keydown', e => { if(e.key==='Escape'){closeModal();closeConfirm();} });
+
+loadRoles();
+</script>
+</body>
+</html>
