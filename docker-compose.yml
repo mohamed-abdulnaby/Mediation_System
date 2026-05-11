@@ -59,9 +59,7 @@ services:
     ports:
       - "8080:8080"   # Roles Management UI
     depends_on:
-      - ftp-server
-      - billing
-      - fraud
+      - ftp-server    # FTP poller retries every 5s on failure anyway
     environment:
       - FTP_HOST=ftp-server
       - FTP_USER=${FTP_USER}
