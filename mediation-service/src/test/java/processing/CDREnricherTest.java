@@ -1,6 +1,5 @@
 package processing;
 
-import msc.MscVoiceCdr;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -11,40 +10,29 @@ class CDREnricherTest {
 
     @BeforeEach
     void setUp() {
-        // This runs before every test, ensuring a fresh cache
+        // Loads subscribers.csv once into the in-memory cache
         enricher = new CDREnricher();
     }
 
     @Test
-    void testEnrichKnownSubscriber() {
-        // 1. Create a CDR with a number that exists in your subscribers.csv
-        MscVoiceCdr cdr = new MscVoiceCdr();
-        cdr.callingNumber = "1234567890"; // Matches Vodafone/Cairo in roadmap seed data
+    void testLookupKnownSubscriber() {
+        // lookup() returns enrichment data for a known MSISDN from subscribers.csv
+        // "1234567890" is expected to map to Vodafone / Cairo / Premium in the seed data
+        CDREnricher.SubscriberInfo info = enricher.lookup("1234567890");
 
-        // 2. Perform enrichment
-        enricher.enrich(cdr);
-
-        // 3. Verify enrichment via lookup (since enrich currently prints to console)
-        CDREnricher.SubscriberInfo info = enricher.lookup(cdr.callingNumber);
-
-        assertEquals("Vodafone", info.carrier());
-        assertEquals("Cairo", info.region());
-        assertEquals("Premium", info.SubscriberType());
+        assertEquals("Vodafone",  info.carrier());
+        assertEquals("Cairo",     info.region());
+        assertEquals("Premium",   info.subscriberType()); // record accessor — lowercase s
     }
 
     @Test
-    void testEnrichUnknownSubscriber() {
-        // 1. Create a CDR with a random number NOT in the CSV
-        MscVoiceCdr cdr = new MscVoiceCdr();
-        cdr.callingNumber = "9999999999";
+    void testLookupUnknownSubscriber() {
+        // For any MSISDN not in the CSV, lookup() returns the fallback SubscriberInfo
+        CDREnricher.SubscriberInfo info = enricher.lookup("9999999999");
 
-        // 2. Perform enrichment
-        enricher.enrich(cdr);
-
-        // 3. Verify fallback values
-        CDREnricher.SubscriberInfo info = enricher.lookup(cdr.callingNumber);
-
-        assertEquals("Unknown", info.carrier());
-        assertEquals("Standard", info.SubscriberType()  );
+        assertEquals("Unknown",  info.carrier());
+        assertEquals("Unknown",  info.region());
+        assertEquals("Standard", info.subscriberType()); // fallback default
+        assertEquals("UNKNOWN",  info.hplmn());
     }
 }
