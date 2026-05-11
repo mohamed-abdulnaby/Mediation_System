@@ -4,7 +4,8 @@ import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 
 import java.io.ByteArrayOutputStream;
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Set;
 
 public class FtpDownloader {
@@ -15,34 +16,58 @@ public class FtpDownloader {
     private final String pass = System.getenv("FTP_PASS");
     private final int port = 21;
 
-    // Processed files tracker
-    private final Set<String> processedFiles = new HashSet<>();
+    // Bounded LRU set — evicts oldest entry once size exceeds 10,000.
+    // Fixes unbounded HashSet growth that accumulated every filename forever.
+    private final Set<String> processedFiles = Collections.newSetFromMap(
+        new LinkedHashMap<String, Boolean>() {
+            protected boolean removeEldestEntry(java.util.Map.Entry<String, Boolean> e) {
+                return size() > 10_000;
+            }
+        }
+    );
+
+    // Persistent FTP connection — reused across poll cycles.
+    // Fixes reconnecting (TCP handshake + FTP login) on every 5-second poll.
+    private FTPClient ftp = null;
 
     // Decode + Filter Processor
     private final FtpProcessor processor = new FtpProcessor();
 
     private FTPClient connect() throws Exception {
+        FTPClient client = new FTPClient();
+        client.connect(host, port);
+        client.login(user, pass);
+        client.enterLocalPassiveMode();
+        client.setFileType(FTP.BINARY_FILE_TYPE);
+        return client;
+    }
 
-        FTPClient ftp = new FTPClient();
-
-        ftp.connect(host, port);
-        ftp.login(user, pass);
-
-        ftp.enterLocalPassiveMode();
-        ftp.setFileType(FTP.BINARY_FILE_TYPE);
-
-        return ftp;
+    // Reuses the existing connection if healthy; reconnects only when needed.
+    private boolean ensureConnected() {
+        try {
+            if (ftp != null && ftp.isConnected() && ftp.sendNoOp()) return true;
+        } catch (Exception ignored) {}
+        try {
+            ftp = connect();
+            System.out.println("[FtpDownloader] Connected to FTP server: " + host);
+            return true;
+        } catch (Exception e) {
+            System.err.println("[FtpDownloader] Reconnect failed: " + e.getMessage());
+            ftp = null;
+            return false;
+        }
     }
 
     public void pollFromFtp() {
 
         while (true) {
 
-            FTPClient ftp = null;
+            if (!ensureConnected()) {
+                sleep();
+                continue;
+            }
 
             try {
-
-                ftp = connect();
 
                 String remoteDir = ".";
                 String[] files = ftp.listNames(remoteDir);
@@ -58,61 +83,44 @@ public class FtpDownloader {
                             continue;
                         }
 
-                        // Skip processed files
+                        // Skip already-processed files
                         if (processedFiles.contains(file)) {
                             continue;
                         }
 
-                        System.out.println("New file detected: " + file);
+                        System.out.println("[FtpDownloader] New file detected: " + file);
 
                         String remotePath = remoteDir + "/" + file;
 
-                        // Download file into memory
                         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
                         boolean success = ftp.retrieveFile(remotePath, baos);
 
                         if (success) {
-
                             byte[] data = baos.toByteArray();
-
                             processedFiles.add(file);
-
-                            // Decode + Filter
                             processor.process(data);
-
-                            System.out.println("Downloaded: " + file);
-
+                            System.out.println("[FtpDownloader] Downloaded: " + file);
                         } else {
-
-                            System.out.println("Failed to download: " + file);
+                            System.err.println("[FtpDownloader] Failed to download: " + file);
                         }
                     }
                 }
 
             } catch (Exception e) {
-
-                System.out.println("FTP connection failed: " + e.getMessage());
-
-            } finally {
-
-                try {
-
-                    if (ftp != null && ftp.isConnected()) {
-
-                        ftp.logout();
-                        ftp.disconnect();
-                    }
-
-                } catch (Exception ignored) {
-                }
+                System.err.println("[FtpDownloader] Poll error: " + e.getMessage());
+                ftp = null; // force reconnect on next cycle
             }
 
-            // Poll every 3 seconds
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException ignored) {
-            }
+            // Poll every 5 seconds
+            sleep();
+        }
+    }
+
+    private void sleep() {
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
         }
     }
 }
