@@ -8,8 +8,8 @@ services:
       - "30000-30009:30000-30009"
     environment:
       - PUBLICHOST=ftp-server
-      - FTP_USER_NAME=testuser
-      - FTP_USER_PASS=testpass
+      - FTP_USER_NAME=${FTP_USER}
+      - FTP_USER_PASS=${FTP_PASS}
       - FTP_USER_HOME=/home/testuser
     volumes:
       - ftp-data:/home/testuser:Z
@@ -20,8 +20,8 @@ services:
       - ftp-server
     environment:
       - FTP_HOST=ftp-server
-      - FTP_USER=testuser
-      - FTP_PASS=testpass
+      - FTP_USER=${FTP_USER}
+      - FTP_PASS=${FTP_PASS}
 
   smsc:
     build: ./smsc-service
@@ -29,8 +29,8 @@ services:
       - ftp-server
     environment:
       - FTP_HOST=ftp-server
-      - FTP_USER=testuser
-      - FTP_PASS=testpass
+      - FTP_USER=${FTP_USER}
+      - FTP_PASS=${FTP_PASS}
 
   pgw:
     build: ./pgw-service
@@ -38,35 +38,39 @@ services:
       - ftp-server
     environment:
       - FTP_HOST=ftp-server
-      - FTP_USER=testuser
-      - FTP_PASS=testpass
+      - FTP_USER=${FTP_USER}
+      - FTP_PASS=${FTP_PASS}
 
+  # RMI servers — no host port exposed; mediation reaches them via Docker
+  # internal network (billing:1099, fraud:1099). Previously both tried to
+  # bind host port 1099, which caused a startup conflict.
   billing:
     build: ./billing-service
-    ports:
-      - "1099:1099"
     volumes:
       - billing-input:/app/input
 
   fraud:
     build: ./fraud-service
-    ports:
-      - "1099:1099"
     volumes:
       - fraud-input:/app/input
 
   mediation:
     build: ./mediation-service
+    ports:
+      - "8080:8080"   # Roles Management UI
     depends_on:
       - ftp-server
       - billing
       - fraud
     environment:
       - FTP_HOST=ftp-server
-      - FTP_USER=testuser
-      - FTP_PASS=testpass
-      - BILLING_RMI_HOST=billing
-      - FRAUD_RMI_HOST=fraud
+      - FTP_USER=${FTP_USER}
+      - FTP_PASS=${FTP_PASS}
+      - BILLING_RMI_HOST=${BILLING_RMI_HOST}
+      - FRAUD_RMI_HOST=${FRAUD_RMI_HOST}
+      - DB_URL=${DB_URL}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
 
 volumes:
   ftp-data:
