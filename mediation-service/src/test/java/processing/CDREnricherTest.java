@@ -17,8 +17,8 @@ class CDREnricherTest {
     @Test
     void testLookupKnownSubscriber() {
         // lookup() returns enrichment data for a known MSISDN from subscribers.csv
-        // "1234567890" is expected to map to Vodafone / Cairo / Premium in the seed data
-        CDREnricher.SubscriberInfo info = enricher.lookup("1234567890");
+        // "201000000001" is expected to map to Vodafone / Cairo / Premium in the seed data
+        CDREnricher.SubscriberInfo info = enricher.lookup("201000000001");
 
         assertEquals("Vodafone",  info.carrier());
         assertEquals("Cairo",     info.region());
