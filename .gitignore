@@ -55,3 +55,9 @@ build/
 # ── Temporary planning/work files ────────────────────────────────────
 person_b_complete_roadmap.md
 remaining_issues.md
+
+# ── Maven shade & demo guides ──
+dependency-reduced-pom.xml
+System_Architecture_Data_Flow.svg
+System_Architecture_Data_Flow.zip
+Mediation_System_Demo_Guide.md
