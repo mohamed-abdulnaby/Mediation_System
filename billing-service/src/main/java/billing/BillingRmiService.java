@@ -32,9 +32,9 @@ public class BillingRmiService extends AbstractRemoteFileService {
     }
 
     public static void main(String[] args) throws Exception {
+        System.setProperty("java.rmi.server.hostname", "billing");
         var service = new BillingRmiService();
-        var exported = (AbstractRemoteFileService) UnicastRemoteObject.exportObject(service, 0);
-        LocateRegistry.createRegistry(RMI_PORT).rebind(SERVICE_NAME, exported);
+        LocateRegistry.createRegistry(RMI_PORT).rebind(SERVICE_NAME, service);
         System.out.println("[BillingRmiService] Running on port " + RMI_PORT);
     }
 }

@@ -143,7 +143,7 @@ public class CDRAggregator {
      */
     private String bucket(String timestamp, String type) {
         try {
-            return type.equals("H") ? timestamp.substring(0, 10) : timestamp.substring(0, 8);
+            return type.equals("H") ? timestamp.substring(0, 13) : timestamp.substring(0, 10);
         } catch (Exception e) { return timestamp; } // if timestamp is shorter than expected, use as-is
     }
 
@@ -165,13 +165,13 @@ public class CDRAggregator {
         hourly.forEach((key, r) -> {
             String[] parts = key.split("\\|");
             String windowStart = parts.length > 3 ? parts[3] : "";
-            CDR_DAO.insertAggregated(r, "HOURLY", windowStart, windowStart + ":59:59");
+            CDR_DAO.insertAggregated(r, "HOURLY", windowStart + ":00:00", windowStart + ":59:59");
         });
         // Write every daily bucket to the DB
         daily.forEach((key, r) -> {
             String[] parts = key.split("\\|");
             String windowStart = parts.length > 3 ? parts[3] : "";
-            CDR_DAO.insertAggregated(r, "DAILY", windowStart, windowStart + "T23:59:59");
+            CDR_DAO.insertAggregated(r, "DAILY", windowStart + "T00:00:00", windowStart + "T23:59:59");
         });
         // Clear both maps — the next flush cycle starts from zero
         hourly.clear();

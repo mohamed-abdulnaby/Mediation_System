@@ -75,7 +75,7 @@ public class CDR_DAO {
                 INSERT INTO mediation_cdr
                   (dial_a, dial_b, start_time, duration, service_id,
                    hplmn, external_charges, record_type, source_file)
-                VALUES (?,?,?,?,?,?,?,?,?)
+                VALUES (?,?, CAST(? AS TIMESTAMP),?,?,?,?,?,?)
                 ON CONFLICT (dial_a, dial_b, start_time, duration) DO NOTHING
             """,
                     dialA, dialB, startTime, duration, serviceId,
@@ -106,7 +106,7 @@ public class CDR_DAO {
                 INSERT INTO mediation_cdr_aggregated
                   (record_type, dial_a, window_type, window_start, window_end,
                    total_records, total_duration, total_bytes, total_messages)
-                VALUES (?,?,?,?,?,?,?,?,?)
+                VALUES (?,?,?, CAST(? AS TIMESTAMPTZ), CAST(? AS TIMESTAMPTZ),?,?,?,?)
             """,
                     r.recordType, r.msisdn, windowType, windowStart, windowEnd,
                     r.totalRecords, r.totalDuration, r.totalBytes, r.totalMessages);

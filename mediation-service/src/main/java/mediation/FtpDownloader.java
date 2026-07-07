@@ -14,7 +14,7 @@ public class FtpDownloader {
     private final String host = System.getenv("FTP_HOST");
     private final String user = System.getenv("FTP_USER");
     private final String pass = System.getenv("FTP_PASS");
-    private final int port = 21;
+    private final int port = System.getenv("FTP_PORT") != null ? Integer.parseInt(System.getenv("FTP_PORT")) : 21;
 
     // Bounded LRU set — evicts oldest entry once size exceeds 10,000.
     // Fixes unbounded HashSet growth that accumulated every filename forever.
