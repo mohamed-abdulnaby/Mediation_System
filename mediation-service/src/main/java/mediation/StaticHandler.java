@@ -20,9 +20,15 @@ public class StaticHandler implements HttpHandler {
             return;
         }
 
-        InputStream resource = getClass().getResourceAsStream("/static/roles.html");
+        String path = ex.getRequestURI().getPath();
+        String file = "roles.html"; // default page
+        if (path.contains("dashboard")) {
+            file = "dashboard.html";
+        }
+
+        InputStream resource = getClass().getResourceAsStream("/static/" + file);
         if (resource == null) {
-            String err = "roles.html not found in classpath. Ensure it is in src/main/resources/static/";
+            String err = file + " not found in classpath.";
             ex.sendResponseHeaders(404, err.length());
             try (OutputStream os = ex.getResponseBody()) { os.write(err.getBytes()); }
             return;
