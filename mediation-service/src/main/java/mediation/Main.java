@@ -10,6 +10,7 @@ public class Main {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
             server.createContext("/api/roles", new RolesHandler());
+            server.createContext("/api/stats", new StatsHandler());
             server.createContext("/",          new StaticHandler());
             server.setExecutor(Executors.newFixedThreadPool(4));
             server.start();

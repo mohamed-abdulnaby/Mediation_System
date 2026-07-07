@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>System Dashboard — Mediation Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --blue: #1d6be0; --blue-light: #3b82f6; --blue-dim: rgba(29,107,224,0.15);
+  --bg: #030307; --bg-secondary: #0a0a14;
+  --border: rgba(255,255,255,0.08); --border-bright: rgba(255,255,255,0.15);
+  --text-primary: #ffffff; --text-secondary: #cbd5e1; --text-muted: #64748b;
+  --radius: 12px; --radius-lg: 20px; --radius-sm: 8px;
+  --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text-primary);font-family:'Inter',system-ui,sans-serif;}
+.app{
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(circle at 80% 10%, rgba(29,107,224,0.15), transparent 800px),
+    radial-gradient(circle at 20% 90%, rgba(16,185,129,0.08), transparent 600px);
+  background-attachment:fixed;
+  display:flex;flex-direction:column;min-height:100vh;
+}
+.container{max-width:1440px;margin:0 auto;padding:0 1.5rem;width:100%;}
+.navbar{position:sticky;top:0;z-index:100;background:rgba(3,3,7,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+.nav-inner{display:flex;align-items:center;height:64px;gap:1.5rem;}
+.nav-brand{display:flex;align-items:center;gap:0.75rem;text-decoration:none;}
+.nav-logo-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--blue-light));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:#fff;box-shadow:0 0 20px rgba(29,107,224,0.4);}
+.nav-brand-text{font-weight:700;font-size:1rem;color:var(--text-primary);}
+.nav-brand-sub{font-size:0.75rem;color:var(--text-muted);}
+.nav-links{display:flex;gap:1.5rem;}
+.nav-link{color:var(--text-secondary);text-decoration:none;font-size:0.875rem;font-weight:500;transition:color 0.2s;}
+.nav-link:hover, .nav-link.active{color:var(--blue-light);}
+.nav-spacer{flex:1;}
+.api-status{display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;color:var(--text-muted);}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--text-muted);transition:background 0.3s;}
+.status-dot.ok{background:var(--success);box-shadow:0 0 8px var(--success);}
+.status-dot.err{background:var(--danger);box-shadow:0 0 8px var(--danger);}
+
+.main-content{flex:1;padding:2rem 0;}
+.dashboard-grid{display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;margin-top:1.5rem;}
+@media(max-width:1024px){.dashboard-grid{grid-template-columns:1fr;}}
+
+/* Metric Cards */
+.metrics-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
+@media(max-width:768px){.metrics-row{grid-template-columns:repeat(2,1fr);}}
+.metric-card{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;position:relative;overflow:hidden;}
+.metric-card::after{content:'';position:absolute;left:0;top:0;width:3px;height:100%;background:var(--blue-light);opacity:0.6;}
+.metric-card.success::after{background:var(--success);}
+.metric-card.warning::after{background:var(--warning);}
+.metric-label{font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;}
+.metric-value{font-size:1.75rem;font-weight:800;margin-top:0.25rem;font-family:'JetBrains Mono',monospace;}
+.metric-sub{font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;}
+
+/* Panel Cards */
+.panel-card{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;display:flex;flex-direction:column;}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;}
+.panel-title{font-size:1.1rem;font-weight:700;}
+.panel-subtitle{font-size:0.8rem;color:var(--text-muted);}
+
+/* Diagram Container */
+.diagram-container{background:#030307;border:1px solid var(--border);border-radius:var(--radius);padding:1rem;display:flex;justify-content:center;align-items:center;min-height:780px;overflow:hidden;}
+.diagram-svg{width:100%;height:auto;max-height:880px;}
+
+/* Statistics List */
+.stats-list{display:flex;flex-direction:column;gap:0.75rem;}
+.stats-item{display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:var(--radius-sm);}
+.stats-item-info{display:flex;flex-direction:column;}
+.stats-item-title{font-size:0.875rem;font-weight:600;}
+.stats-item-sub{font-size:0.75rem;color:var(--text-muted);}
+.stats-item-value{font-size:1.1rem;font-weight:700;font-family:'JetBrains Mono',monospace;}
+
+.footer{border-top:1px solid var(--border);padding:1.25rem 0;text-align:center;font-size:0.78rem;color:var(--text-muted);margin-top:3rem;}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="navbar">
+    <div class="nav-inner container">
+      <a href="/" class="nav-brand">
+        <div class="nav-logo-mark">M</div>
+        <div><div class="nav-brand-text">Mediation System</div><div class="nav-brand-sub">Admin Console</div></div>
+      </a>
+      <div class="nav-links">
+        <a href="/dashboard.html" class="nav-link active">Dashboard</a>
+        <a href="/roles.html" class="nav-link">Roles Console</a>
+      </div>
+      <div class="nav-spacer"></div>
+      <div class="api-status" id="apiStatus"><span class="status-dot" id="statusDot"></span><span id="statusText">Connecting…</span></div>
+    </div>
+  </nav>
+
+  <main class="main-content container">
+    <!-- Top Metrics Row -->
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-label">Total Processed CDRs</div>
+        <div class="metric-value" id="valTotalCdr">0</div>
+        <div class="metric-sub">Stored in mediation_cdr</div>
+      </div>
+      <div class="metric-card success">
+        <div class="metric-label">Aggregated Buckets</div>
+        <div class="metric-value" id="valAggBuckets">0</div>
+        <div class="metric-sub">Stored in hourly/daily stats</div>
+      </div>
+      <div class="metric-card warning">
+        <div class="metric-label">Voice call volume</div>
+        <div class="metric-value" id="valVoiceSec">0s</div>
+        <div class="metric-sub">Total voice call duration</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">SMS processed</div>
+        <div class="metric-value" id="valSmsMsgs">0</div>
+        <div class="metric-sub">Downstream SMS deliveries</div>
+      </div>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <div class="dashboard-grid">
+      <!-- Interactive Diagram Panel -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Active Data Flow</h2>
+            <p class="panel-subtitle">Visual tracking of transactions crawling through nodes in real-time.</p>
+          </div>
+        </div>
+        <div class="diagram-container" id="svgContainer">
+          <!-- SVG is injected dynamically here to allow JS DOM access -->
+        </div>
+      </div>
+
+      <!-- Pipeline Detail Stats -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Pipeline Stats</h2>
+            <p class="panel-subtitle">Real-time network elements throughput.</p>
+          </div>
+        </div>
+        <div class="stats-list">
+          <div class="stats-item">
+            <div class="stats-item-info">
+              <span class="stats-item-title">MSC Voice Generator</span>
+              <span class="stats-item-sub">Total voice files parsed</span>
+            </div>
+            <span class="stats-item-value" id="statsVoiceCount">0</span>
+          </div>
+          <div class="stats-item">
+            <div class="stats-item-info">
+              <span class="stats-item-title">SMSC Message Generator</span>
+              <span class="stats-item-sub">Total SMS files parsed</span>
+            </div>
+            <span class="stats-item-value" id="statsSmsCount">0</span>
+          </div>
+          <div class="stats-item">
+            <div class="stats-item-info">
+              <span class="stats-item-title">PGW Data Generator</span>
+              <span class="stats-item-sub">Total PGW data files parsed</span>
+            </div>
+            <span class="stats-item-value" id="statsDataCount">0</span>
+          </div>
+          <div class="stats-item">
+            <div class="stats-item-info">
+              <span class="stats-item-title">Total Transferred Volume</span>
+              <span class="stats-item-sub">Sum of bandwidth processed</span>
+            </div>
+            <span class="stats-item-value" id="statsTotalBytes">0 MB</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer"><div class="container">© 2026 Mediation System — ITI Graduation Project</div></footer>
+</div>
+
+<script>
+const STATS_API = '/api/stats';
+
+// Render raw inline SVG here to let Javascript dynamically query and add class animations
+const SVG_TEMPLATE = `
+<svg id="archSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1020" class="diagram-svg">
+  <defs>
+    <!-- Node Gradients -->
+    <linearGradient id="gradient-sim" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2563eb"/><stop offset="100%" stop-color="#1d4ed8"/></linearGradient>
+    <linearGradient id="gradient-med" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#059669"/></linearGradient>
+    <linearGradient id="gradient-dest" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#6d28d9"/></linearGradient>
+    <linearGradient id="gradient-db" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/></linearGradient>
+    <linearGradient id="gradient-ftp" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4b5563"/><stop offset="100%" stop-color="#374151"/></linearGradient>
+    <linearGradient id="gradient-border" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(255,255,255,0.1)"/><stop offset="100%" stop-color="rgba(255,255,255,0.02)"/></linearGradient>
+    
+    <!-- Shadow Filter -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.5"/></filter>
+    
+    <!-- Packet Glows -->
+    <filter id="glow-blue" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="glow-green" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="glow-violet" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    
+    <!-- Arrowhead markers pointing in correct directions -->
+    <marker id="arrow-down" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#1e293b"/></marker>
+    <marker id="arrow-up" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#1e293b"/></marker>
+  </defs>
+
+  <style>
+    .group-label { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 11px; fill: #64748b; letter-spacing: 0.08em; text-transform: uppercase; }
+    .box-title { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 12px; fill: #ffffff; }
+    .box-desc { font-family: 'Inter', sans-serif; font-size: 9.5px; fill: #cbd5e1; }
+    .flow-label { font-family: 'Inter', sans-serif; font-size: 9.5px; fill: #475569; font-weight: 600; text-anchor: middle; }
+    .connector-bg { stroke: #1e293b; stroke-width: 2; fill: none; }
+  </style>
+
+  <!-- ==================== OUTER BOXES ==================== -->
+  
+  <!-- Mediation Service Outer Box -->
+  <rect x="230" y="30" width="340" height="755" rx="16" fill="#040408" stroke="url(#gradient-border)" stroke-width="1.5"/>
+  <text x="245" y="52" class="group-label">Mediation Service</text>
+
+  <!-- Simulators Outer Box -->
+  <rect x="40" y="805" width="480" height="185" rx="16" fill="#040408" stroke="url(#gradient-border)" stroke-width="1.5"/>
+  <text x="55" y="825" class="group-label">Simulators</text>
+
+  <!-- Downstream Outer Box -->
+  <rect x="550" y="805" width="210" height="105" rx="16" fill="#040408" stroke="url(#gradient-border)" stroke-width="1.5"/>
+  <text x="565" y="825" class="group-label">Downstream</text>
+
+
+  <!-- ==================== CONNECTOR PATHS WITH CORRECT DIRECTIONS ==================== -->
+  
+  <!-- Simulators -> FTP (Downwards) -->
+  <path id="pathPgw" class="connector-bg" marker-end="url(#arrow-down)" d="M 140 885 L 140 910 L 280 910 L 280 918"/>
+  <path id="pathMsc" class="connector-bg" marker-end="url(#arrow-down)" d="M 280 885 L 280 918"/>
+  <path id="pathSmsc" class="connector-bg" marker-end="url(#arrow-down)" d="M 420 885 L 420 910 L 280 910 L 280 918"/>
+
+  <!-- FTP -> FtpDownloader (Upwards) -->
+  <path id="pathFtp" class="connector-bg" marker-end="url(#arrow-up)" d="M 280 920 L 280 790 L 400 790 L 400 767"/>
+  
+  <!-- Mediation Processing Stack (Upwards) -->
+  <path id="pathDecode" class="connector-bg" marker-end="url(#arrow-up)" d="M 400 720 L 400 687"/>
+  <path id="pathProcessor" class="connector-bg" marker-end="url(#arrow-up)" d="M 400 640 L 400 607"/>
+  <path id="pathEnrich" class="connector-bg" marker-end="url(#arrow-up)" d="M 400 560 L 400 527"/>
+  <path id="pathBuffer" class="connector-bg" marker-end="url(#arrow-up)" d="M 400 480 L 400 447"/>
+  <path id="pathDao" class="connector-bg" marker-end="url(#arrow-up)" d="M 400 400 L 400 367"/>
+  
+  <!-- Buffer -> CDRAggregator (Left-wards and Up) -->
+  <path id="pathBufferAgg" class="connector-bg" marker-end="url(#arrow-up)" d="M 400 400 L 400 380 L 300 380 L 300 287"/>
+
+  <!-- Aggregator -> CDR_DAO (Downwards and Right) -->
+  <path id="pathAggDao" class="connector-bg" marker-end="url(#arrow-down)" d="M 300 285 L 300 300 L 400 300 L 400 318"/>
+
+  <!-- DAO -> NeonDB (Upwards and Right) -->
+  <path id="pathDaoDb" class="connector-bg" marker-end="url(#arrow-up)" d="M 400 320 L 400 300 L 500 300 L 500 287"/>
+  
+  <!-- DB -> CSVFormatter (Upwards) -->
+  <path id="pathDbCsv" class="connector-bg" marker-end="url(#arrow-up)" d="M 500 240 L 500 207"/>
+
+  <!-- Roles to DB (Downwards and Right) -->
+  <path id="pathRoles" class="connector-bg" marker-end="url(#arrow-down)" d="M 300 205 L 300 220 L 500 220 L 500 238"/>
+  
+  <!-- CSV to RmiSender (Upwards and Left) -->
+  <path id="pathCsvRmi" class="connector-bg" marker-end="url(#arrow-up)" d="M 500 160 L 500 140 L 400 140 L 400 127"/>
+
+  <!-- RmiSender to Downstream Services (Loops out, flows Downwards) -->
+  <path id="pathRmiFraud" class="connector-bg" marker-end="url(#arrow-down)" d="M 320 102 L 60 102 L 60 780 L 610 780 L 610 838"/>
+  <path id="pathRmiBill" class="connector-bg" marker-end="url(#arrow-down)" d="M 480 102 L 740 102 L 740 780 L 710 780 L 710 838"/>
+
+
+  <!-- ==================== FLOW LABELS ==================== -->
+  
+  <text x="140" y="900" class="flow-label">ASN.1 BER</text>
+  <text x="280" y="905" class="flow-label">ASN.1 BER</text>
+  <text x="420" y="900" class="flow-label">ASN.1 BER</text>
+  
+  <text x="280" y="785" class="flow-label">Poll &amp; Fetch</text>
+  <text x="400" y="700" class="flow-label">Parse BouncyCastle</text>
+  <text x="400" y="620" class="flow-label">Clean / Deduplicate</text>
+  <text x="400" y="540" class="flow-label">subscribers.csv lookup</text>
+  <text x="400" y="460" class="flow-label">Sort Chronologically</text>
+  <text x="400" y="380" class="flow-label">Batch Insert</text>
+  
+  <text x="300" y="295" class="flow-label">Hourly/Daily stats</text>
+  <text x="500" y="295" class="flow-label">SQL Queries</text>
+  
+  <text x="300" y="215" class="flow-label">roles table</text>
+  <text x="500" y="215" class="flow-label">Query Unsent</text>
+  <text x="400" y="135" class="flow-label">RMI port 1099</text>
+  
+  <text x="90" y="775" class="flow-label">Deliver CSV</text>
+  <text x="710" y="775" class="flow-label">Deliver CSV</text>
+
+
+  <!-- ==================== CONTINUOUSLY FLOWING DATA PACKETS (INFINITY LOOP) ==================== -->
+  
+  <!-- PGW -> FTP -->
+  <circle r="3.5" fill="#3b82f6" filter="url(#glow-blue)">
+    <animateMotion dur="3s" repeatCount="indefinite" path="M 140 885 L 140 910 L 280 910 L 280 920"/>
+  </circle>
+  <!-- MSC -> FTP -->
+  <circle r="3.5" fill="#3b82f6" filter="url(#glow-blue)">
+    <animateMotion dur="2s" repeatCount="indefinite" path="M 280 885 L 280 920"/>
+  </circle>
+  <!-- SMSC -> FTP -->
+  <circle r="3.5" fill="#3b82f6" filter="url(#glow-blue)">
+    <animateMotion dur="3.5s" repeatCount="indefinite" path="M 420 885 L 420 910 L 280 910 L 280 920"/>
+  </circle>
+
+  <!-- FTP -> FtpDownloader -->
+  <circle r="4.5" fill="#10b981" filter="url(#glow-green)">
+    <animateMotion dur="5s" repeatCount="indefinite" path="M 280 920 L 280 790 L 400 790 L 400 765"/>
+  </circle>
+  
+  <!-- Mediation Stack Packets (Upwards) -->
+  <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
+    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 400 720 L 400 685"/>
+  </circle>
+  <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
+    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 400 640 L 400 605"/>
+  </circle>
+  <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
+    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 400 560 L 400 525"/>
+  </circle>
+  <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
+    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 400 480 L 400 445"/>
+  </circle>
+  <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
+    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 400 400 L 400 365"/>
+  </circle>
+
+  <!-- Buffer -> Aggregator -->
+  <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
+    <animateMotion dur="2.2s" repeatCount="indefinite" path="M 400 400 L 400 380 L 300 380 L 300 285"/>
+  </circle>
+
+  <!-- Aggregator -> DAO -->
+  <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
+    <animateMotion dur="2.2s" repeatCount="indefinite" path="M 300 285 L 300 300 L 400 300 L 400 318"/>
+  </circle>
+
+  <!-- DAO -> DB -->
+  <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
+    <animateMotion dur="2.2s" repeatCount="indefinite" path="M 400 320 L 400 300 L 500 300 L 500 285"/>
+  </circle>
+
+  <!-- DB -> CSV -->
+  <circle r="3.5" fill="#a78bfa" filter="url(#glow-violet)">
+    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 500 240 L 500 205"/>
+  </circle>
+  
+  <!-- Roles -> DB -->
+  <circle r="3" fill="#a78bfa" filter="url(#glow-violet)">
+    <animateMotion dur="2.5s" repeatCount="indefinite" path="M 300 205 L 300 220 L 500 220 L 500 240"/>
+  </circle>
+
+  <!-- CSV -> Rmi -->
+  <circle r="4" fill="#a78bfa" filter="url(#glow-violet)">
+    <animateMotion dur="2s" repeatCount="indefinite" path="M 500 160 L 500 140 L 400 140 L 400 125"/>
+  </circle>
+
+  <!-- Rmi to Downstream (Outer Loops) -->
+  <circle r="4.5" fill="#a78bfa" filter="url(#glow-violet)">
+    <animateMotion dur="6s" repeatCount="indefinite" path="M 320 102 L 60 102 L 60 780 L 610 780 L 610 840"/>
+  </circle>
+  <circle r="4.5" fill="#a78bfa" filter="url(#glow-violet)">
+    <animateMotion dur="6s" repeatCount="indefinite" path="M 480 102 L 740 102 L 740 780 L 710 780 L 710 840"/>
+  </circle>
+
+
+  <!-- ==================== GRAPH NODES ==================== -->
+  
+  <!-- MSC -->
+  <g filter="url(#shadow)">
+    <rect x="200" y="840" width="160" height="45" rx="6" fill="url(#gradient-sim)"/>
+    <text x="280" y="867" class="box-title" text-anchor="middle">msc-service</text>
+  </g>
+  
+  <!-- SMSC -->
+  <g filter="url(#shadow)">
+    <rect x="380" y="840" width="160" height="45" rx="6" fill="url(#gradient-sim)"/>
+    <text x="460" y="867" class="box-title" text-anchor="middle">smsc-service</text>
+  </g>
+
+  <!-- PGW -->
+  <g filter="url(#shadow)">
+    <rect x="60" y="840" width="160" height="45" rx="6" fill="url(#gradient-sim)"/>
+    <text x="140" y="867" class="box-title" text-anchor="middle">pgw-service</text>
+  </g>
+
+  <!-- FTP -->
+  <g filter="url(#shadow)">
+    <rect x="200" y="920" width="160" height="45" rx="6" fill="url(#gradient-ftp)"/>
+    <text x="280" y="947" class="box-title" text-anchor="middle">ftp-server:2121</text>
+  </g>
+
+  <!-- FtpDownloader -->
+  <g filter="url(#shadow)">
+    <rect x="320" y="720" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
+    <text x="400" y="747" class="box-title" text-anchor="middle">FtpDownloader</text>
+  </g>
+
+  <!-- Decoder -->
+  <g filter="url(#shadow)">
+    <rect x="320" y="640" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
+    <text x="400" y="667" class="box-title" text-anchor="middle">Decoder</text>
+  </g>
+
+  <!-- FtpProcessor -->
+  <g filter="url(#shadow)">
+    <rect x="320" y="560" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
+    <text x="400" y="587" class="box-title" text-anchor="middle">FtpProcessor</text>
+  </g>
+
+  <!-- CDREnricher -->
+  <g filter="url(#shadow)">
+    <rect x="320" y="480" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
+    <text x="400" y="507" class="box-title" text-anchor="middle">CDREnricher</text>
+  </g>
+
+  <!-- CDRBuffer -->
+  <g filter="url(#shadow)">
+    <rect x="320" y="400" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
+    <text x="400" y="427" class="box-title" text-anchor="middle">CDRBuffer</text>
+  </g>
+
+  <!-- CDR_DAO -->
+  <g filter="url(#shadow)">
+    <rect x="320" y="320" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
+    <text x="400" y="347" class="box-title" text-anchor="middle">CDR_DAO</text>
+  </g>
+
+  <!-- CDRAggregator -->
+  <g filter="url(#shadow)">
+    <rect x="220" y="240" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
+    <text x="300" y="267" class="box-title" text-anchor="middle">CDRAggregator</text>
+  </g>
+
+  <!-- NeonDB -->
+  <g filter="url(#shadow)">
+    <rect x="420" y="240" width="160" height="45" rx="6" fill="url(#gradient-db)"/>
+    <text x="500" y="267" class="box-title" text-anchor="middle">NeonDB</text>
+  </g>
+
+  <!-- RolesHandler -->
+  <g filter="url(#shadow)">
+    <rect x="220" y="160" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
+    <text x="300" y="187" class="box-title" text-anchor="middle">RolesHandler</text>
+  </g>
+
+  <!-- CSVFormatter -->
+  <g filter="url(#shadow)">
+    <rect x="420" y="160" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
+    <text x="500" y="187" class="box-title" text-anchor="middle">CSVFormatter</text>
+  </g>
+
+  <!-- RmiFileSender -->
+  <g filter="url(#shadow)">
+    <rect x="320" y="80" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
+    <text x="400" y="107" class="box-title" text-anchor="middle">RmiFileSender</text>
+  </g>
+
+  <!-- Downstream: fraud-service -->
+  <g filter="url(#shadow)">
+    <rect x="570" y="840" width="80" height="45" rx="6" fill="url(#gradient-dest)"/>
+    <text x="610" y="867" class="box-title" text-anchor="middle">fraud-service</text>
+  </g>
+
+  <!-- Downstream: billing-service -->
+  <g filter="url(#shadow)">
+    <rect x="670" y="840" width="80" height="45" rx="6" fill="url(#gradient-dest)"/>
+    <text x="710" y="867" class="box-title" text-anchor="middle">billing-service</text>
+  </g>
+
+</svg>
+`;
+
+document.getElementById('svgContainer').innerHTML = SVG_TEMPLATE;
+
+// ── Refresh stats dynamically ─────────────────────────────────────────
+async function fetchStats() {
+  try {
+    const res = await fetch(STATS_API);
+    if (!res.ok) throw new Error('API offline');
+    const d = await res.json();
+    
+    // Update Connection Badge
+    setStatus(true);
+    
+    // Update Numeric Metrics
+    document.getElementById('valTotalCdr').textContent = formatNum(d.total_cdr);
+    document.getElementById('valAggBuckets').textContent = formatNum(d.total_aggregated_buckets);
+    document.getElementById('valVoiceSec').textContent = formatNum(d.total_duration_sec) + 's';
+    document.getElementById('valSmsMsgs').textContent = formatNum(d.total_messages);
+    
+    document.getElementById('statsVoiceCount').textContent = formatNum(d.voice_cdr);
+    document.getElementById('statsSmsCount').textContent = formatNum(d.sms_cdr);
+    document.getElementById('statsDataCount').textContent = formatNum(d.data_cdr);
+    document.getElementById('statsTotalBytes').textContent = (d.total_bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    
+  } catch (e) {
+    setStatus(false);
+  }
+}
+
+function setStatus(ok) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  if (ok) {
+    dot.className = 'status-dot ok';
+    txt.textContent = 'Live System Online';
+  } else {
+    dot.className = 'status-dot err';
+    txt.textContent = 'API Offline';
+  }
+}
+
+function formatNum(n) {
+  return Number(n).toLocaleString();
+}
+
+// Poll stats every 2.5 seconds
+setInterval(fetchStats, 2500);
+fetchStats();
+</script>
+</body>
+</html>

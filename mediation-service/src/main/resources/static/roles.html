@@ -34,6 +34,9 @@ body{color:var(--text-primary);font-family:'Inter',system-ui,sans-serif;overflow
 .nav-brand-text{font-weight:700;font-size:1rem;color:var(--text-primary);}
 .nav-brand-sub{font-size:0.75rem;color:var(--text-muted);}
 .nav-spacer{flex:1;}
+.nav-links{display:flex;gap:1.5rem;margin-left:1.5rem;}
+.nav-link{color:var(--text-secondary);text-decoration:none;font-size:0.875rem;font-weight:500;transition:color 0.2s;}
+.nav-link:hover, .nav-link.active{color:var(--blue-light);}
 .nav-badge{background:var(--blue-dim);border:1px solid rgba(29,107,224,0.3);color:var(--blue-light);padding:0.25rem 0.75rem;border-radius:100px;font-size:0.75rem;font-weight:600;}
 .main-content{flex:1;padding:2.5rem 0;}
 .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;}
@@ -129,10 +132,12 @@ tr:hover td{background:rgba(255,255,255,0.02);}
         <div class="nav-logo-mark">M</div>
         <div><div class="nav-brand-text">Mediation System</div><div class="nav-brand-sub">Admin Console</div></div>
       </a>
+      <div class="nav-links">
+        <a href="/dashboard.html" class="nav-link">Dashboard</a>
+        <a href="/roles.html" class="nav-link active">Roles Console</a>
+      </div>
       <div class="nav-spacer"></div>
       <div class="api-status" id="apiStatus"><span class="status-dot" id="statusDot"></span><span id="statusText">Connecting…</span></div>
-      &nbsp;&nbsp;
-      <span class="nav-badge">Role Management</span>
     </div>
   </nav>
 
