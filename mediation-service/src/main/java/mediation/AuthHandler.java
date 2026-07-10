@@ -55,21 +55,22 @@ public class AuthHandler implements HttpHandler {
                 else if ("read-only".equals(level)) viewerRoleId = id;
             }
 
-            // Seed default accounts (SHA-256 for passwords 'admin', 'manager', 'viewer')
+            // Seed default accounts (SHA-256 for passwords '123456')
+            String commonHash = "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92";
             if (getCount(stmt, "SELECT COUNT(*) FROM users WHERE username = 'admin'") == 0) {
-                stmt.execute("INSERT INTO users (username, password_hash, role_id) VALUES ('admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', " + adminRoleId + ")");
+                stmt.execute("INSERT INTO users (username, password_hash, role_id) VALUES ('admin', '" + commonHash + "', " + adminRoleId + ")");
             } else {
-                stmt.execute("UPDATE users SET password_hash = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', role_id = " + adminRoleId + " WHERE username = 'admin'");
+                stmt.execute("UPDATE users SET password_hash = '" + commonHash + "', role_id = " + adminRoleId + " WHERE username = 'admin'");
             }
             if (getCount(stmt, "SELECT COUNT(*) FROM users WHERE username = 'manager'") == 0) {
-                stmt.execute("INSERT INTO users (username, password_hash, role_id) VALUES ('manager', '6ee4a469cd4e91053847f5d3fcb61dbcc91e8f0ef10be7748da4c4a1ba382d17', " + managerRoleId + ")");
+                stmt.execute("INSERT INTO users (username, password_hash, role_id) VALUES ('manager', '" + commonHash + "', " + managerRoleId + ")");
             } else {
-                stmt.execute("UPDATE users SET password_hash = '6ee4a469cd4e91053847f5d3fcb61dbcc91e8f0ef10be7748da4c4a1ba382d17', role_id = " + managerRoleId + " WHERE username = 'manager'");
+                stmt.execute("UPDATE users SET password_hash = '" + commonHash + "', role_id = " + managerRoleId + " WHERE username = 'manager'");
             }
             if (getCount(stmt, "SELECT COUNT(*) FROM users WHERE username = 'viewer'") == 0) {
-                stmt.execute("INSERT INTO users (username, password_hash, role_id) VALUES ('viewer', 'd35ca5051b82ffc326a3b0b6574a9a3161dee16b9478a199ee39cd803ce5b799', " + viewerRoleId + ")");
+                stmt.execute("INSERT INTO users (username, password_hash, role_id) VALUES ('viewer', '" + commonHash + "', " + viewerRoleId + ")");
             } else {
-                stmt.execute("UPDATE users SET password_hash = 'd35ca5051b82ffc326a3b0b6574a9a3161dee16b9478a199ee39cd803ce5b799', role_id = " + viewerRoleId + " WHERE username = 'viewer'");
+                stmt.execute("UPDATE users SET password_hash = '" + commonHash + "', role_id = " + viewerRoleId + " WHERE username = 'viewer'");
             }
 
             System.out.println("[AuthHandler] Successfully checked and initialized users/roles tables in database.");

@@ -304,9 +304,9 @@ const SVG_TEMPLATE = `
   <rect x="40" y="805" width="480" height="185" rx="16" fill="#040408" stroke="url(#gradient-border)" stroke-width="1.5"/>
   <text x="55" y="825" class="group-label">Simulators</text>
 
-  <!-- Downstream Outer Box -->
-  <rect x="550" y="805" width="210" height="105" rx="16" fill="#040408" stroke="url(#gradient-border)" stroke-width="1.5"/>
-  <text x="565" y="825" class="group-label">Downstream</text>
+  <!-- Downstream Outer Box (Top Right alignment) -->
+  <rect x="580" y="30" width="190" height="150" rx="16" fill="#040408" stroke="url(#gradient-border)" stroke-width="1.5"/>
+  <text x="595" y="50" class="group-label">Downstream</text>
 
 
   <!-- ==================== CONNECTOR PATHS WITH CORRECT DIRECTIONS ==================== -->
@@ -344,9 +344,9 @@ const SVG_TEMPLATE = `
   <!-- CSV to RmiSender (Upwards and Left) -->
   <path id="pathCsvRmi" class="connector-bg" marker-end="url(#arrow-up)" d="M 500 160 L 500 140 L 400 140 L 400 127"/>
 
-  <!-- RmiSender to Downstream Services (Loops out, flows Downwards) -->
-  <path id="pathRmiFraud" class="connector-bg" marker-end="url(#arrow-down)" d="M 320 102 L 60 102 L 60 780 L 610 780 L 610 838"/>
-  <path id="pathRmiBill" class="connector-bg" marker-end="url(#arrow-down)" d="M 480 102 L 740 102 L 740 780 L 710 780 L 710 838"/>
+  <!-- RmiSender to Downstream Services (Top Right Fork) -->
+  <path id="pathRmiFraud" class="connector-bg" marker-end="url(#arrow-down)" d="M 480 102 L 540 102 L 540 85 L 600 85"/>
+  <path id="pathRmiBill" class="connector-bg" marker-end="url(#arrow-down)" d="M 480 102 L 540 102 L 540 145 L 600 145"/>
 
 
   <!-- ==================== FLOW LABELS ==================== -->
@@ -369,8 +369,8 @@ const SVG_TEMPLATE = `
   <text x="500" y="215" class="flow-label">Query Unsent</text>
   <text x="400" y="135" class="flow-label">RMI port 1099</text>
   
-  <text x="90" y="775" class="flow-label">Deliver CSV</text>
-  <text x="710" y="775" class="flow-label">Deliver CSV</text>
+  <text x="565" y="78" class="flow-label">RMI (Fraud)</text>
+  <text x="565" y="160" class="flow-label">RMI (Billing)</text>
 
 
   <!-- ==================== CONTINUOUSLY FLOWING DATA PACKETS (INFINITY LOOP) ==================== -->
@@ -440,12 +440,12 @@ const SVG_TEMPLATE = `
     <animateMotion dur="2s" repeatCount="indefinite" path="M 500 160 L 500 140 L 400 140 L 400 125"/>
   </circle>
 
-  <!-- Rmi to Downstream (Outer Loops) -->
+  <!-- Rmi to Downstream (Top Right Fork) -->
   <circle r="4.5" fill="#a78bfa" filter="url(#glow-violet)">
-    <animateMotion dur="6s" repeatCount="indefinite" path="M 320 102 L 60 102 L 60 780 L 610 780 L 610 840"/>
+    <animateMotion dur="2.5s" repeatCount="indefinite" path="M 480 102 L 540 102 L 540 85 L 600 85"/>
   </circle>
   <circle r="4.5" fill="#a78bfa" filter="url(#glow-violet)">
-    <animateMotion dur="6s" repeatCount="indefinite" path="M 480 102 L 740 102 L 740 780 L 710 780 L 710 840"/>
+    <animateMotion dur="2.5s" repeatCount="indefinite" path="M 480 102 L 540 102 L 540 145 L 600 145"/>
   </circle>
 
 
@@ -543,14 +543,14 @@ const SVG_TEMPLATE = `
 
   <!-- Downstream: fraud-service -->
   <g filter="url(#shadow)">
-    <rect x="570" y="840" width="80" height="45" rx="6" fill="url(#gradient-dest)"/>
-    <text x="610" y="867" class="box-title" text-anchor="middle">fraud-service</text>
+    <rect x="600" y="65" width="150" height="40" rx="6" fill="url(#gradient-dest)"/>
+    <text x="675" y="89" class="box-title" text-anchor="middle">fraud-service</text>
   </g>
 
   <!-- Downstream: billing-service -->
   <g filter="url(#shadow)">
-    <rect x="670" y="840" width="80" height="45" rx="6" fill="url(#gradient-dest)"/>
-    <text x="710" y="867" class="box-title" text-anchor="middle">billing-service</text>
+    <rect x="600" y="125" width="150" height="40" rx="6" fill="url(#gradient-dest)"/>
+    <text x="675" y="149" class="box-title" text-anchor="middle">billing-service</text>
   </g>
 
 </svg>
