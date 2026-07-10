@@ -173,15 +173,44 @@ html,body{height:100%;background:var(--bg);color:var(--text-primary);font-family
     <!-- Main Dashboard Grid -->
     <div class="dashboard-grid">
       <!-- Interactive Diagram Panel -->
-      <div class="panel-card">
+      <div class="panel-card" style="position: relative; overflow: hidden;">
         <div class="panel-header">
           <div>
             <h2 class="panel-title">Active Data Flow</h2>
-            <p class="panel-subtitle">Visual tracking of transactions crawling through nodes in real-time.</p>
+            <p class="panel-subtitle">Visual tracking of transactions crawling through nodes in real-time. (Click nodes to inspect)</p>
           </div>
         </div>
         <div class="diagram-container" id="svgContainer">
           <!-- SVG is injected dynamically here to allow JS DOM access -->
+        </div>
+
+        <!-- Observability Detail Box (Glassmorphic Slide-in) -->
+        <div id="observabilityBox" style="position: absolute; top: 0; right: -320px; width: 300px; height: 100%; background: rgba(10, 10, 20, 0.95); border-left: 1px solid var(--border); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 10; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+            <h3 id="obsTitle" style="font-size: 1.05rem; font-weight: 700; color: var(--blue-light);">Node Details</h3>
+            <button onclick="closeObservability()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; line-height: 1; outline: none;">×</button>
+          </div>
+          <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem;">
+            <div>
+              <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Source File</span>
+              <p id="obsClass" style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.25rem; word-break: break-all;"></p>
+            </div>
+            <div>
+              <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Role &amp; Function</span>
+              <p id="obsDesc" style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.25rem; line-height: 1.4;"></p>
+            </div>
+            <div>
+              <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Active Rules</span>
+              <p id="obsRules" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem; line-height: 1.4; white-space: pre-line; background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 0.5rem 0.75rem; border-radius: 6px;"></p>
+            </div>
+            <div>
+              <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Operational Status</span>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 10px var(--success);"></span>
+                <span style="font-size: 0.82rem; font-weight: 600; color: var(--success);">Online &amp; Active</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -288,10 +317,12 @@ const SVG_TEMPLATE = `
 
   <style>
     .group-label { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 11px; fill: #64748b; letter-spacing: 0.08em; text-transform: uppercase; }
-    .box-title { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 12px; fill: #ffffff; }
-    .box-desc { font-family: 'Inter', sans-serif; font-size: 9.5px; fill: #cbd5e1; }
-    .flow-label { font-family: 'Inter', sans-serif; font-size: 9.5px; fill: #475569; font-weight: 600; text-anchor: middle; }
+    .box-title { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 12px; fill: #ffffff; pointer-events: none; }
+    .box-desc { font-family: 'Inter', sans-serif; font-size: 9.5px; fill: #cbd5e1; pointer-events: none; }
+    .flow-label { font-family: 'Inter', sans-serif; font-size: 9.5px; fill: #475569; font-weight: 600; text-anchor: middle; pointer-events: none; }
     .connector-bg { stroke: #1e293b; stroke-width: 2; fill: none; }
+    .clickable-node { cursor: pointer; transition: all 0.2s ease; }
+    .clickable-node:hover rect { fill-opacity: 0.8; stroke: var(--blue-light); stroke-width: 1.5px; }
   </style>
 
   <!-- ==================== OUTER BOXES ==================== -->
@@ -338,8 +369,7 @@ const SVG_TEMPLATE = `
   <!-- DB -> CSVFormatter (Downwards) -->
   <path id="pathDbCsv" class="connector-bg" marker-end="url(#arrow-down)" d="M 485 760 L 485 778"/>
 
-  <!-- Roles to DB (Upwards & Right) -->
-  <path id="pathRoles" class="connector-bg" marker-end="url(#arrow-up)" d="M 390 800 L 485 800 L 485 762"/>
+  <!-- Roles to DB removed to focus strictly on Data Plane -->
   
   <!-- CSV to RmiSender (Downwards & Left) -->
   <path id="pathCsvRmi" class="connector-bg" marker-end="url(#arrow-down)" d="M 485 820 L 485 835 L 400 835 L 400 848"/>
@@ -430,10 +460,7 @@ const SVG_TEMPLATE = `
     <animateMotion dur="1.8s" repeatCount="indefinite" path="M 485 760 L 485 780"/>
   </circle>
   
-  <!-- Roles -> DB -->
-  <circle r="3" fill="#a78bfa" filter="url(#glow-violet)">
-    <animateMotion dur="2.5s" repeatCount="indefinite" path="M 390 800 L 485 800 L 485 760"/>
-  </circle>
+  <!-- Roles -> DB animated circle removed -->
 
   <!-- CSV -> Rmi -->
   <circle r="4" fill="#a78bfa" filter="url(#glow-violet)">
@@ -452,103 +479,99 @@ const SVG_TEMPLATE = `
   <!-- ==================== GRAPH NODES ==================== -->
   
   <!-- MSC -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('msc')">
     <rect x="200" y="65" width="160" height="45" rx="6" fill="url(#gradient-sim)"/>
     <text x="280" y="92" class="box-title" text-anchor="middle">msc-service</text>
   </g>
   
   <!-- SMSC -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('smsc')">
     <rect x="380" y="65" width="160" height="45" rx="6" fill="url(#gradient-sim)"/>
     <text x="460" y="92" class="box-title" text-anchor="middle">smsc-service</text>
   </g>
 
   <!-- PGW -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('pgw')">
     <rect x="60" y="65" width="160" height="45" rx="6" fill="url(#gradient-sim)"/>
     <text x="140" y="92" class="box-title" text-anchor="middle">pgw-service</text>
   </g>
 
   <!-- FTP -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('ftp')">
     <rect x="200" y="145" width="160" height="45" rx="6" fill="url(#gradient-ftp)"/>
     <text x="280" y="172" class="box-title" text-anchor="middle">ftp-server:2121</text>
   </g>
 
   <!-- FtpDownloader -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('downloader')">
     <rect x="320" y="290" width="160" height="40" rx="6" fill="url(#gradient-med)"/>
     <text x="400" y="315" class="box-title" text-anchor="middle">FtpDownloader</text>
   </g>
 
   <!-- Decoder -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('decoder')">
     <rect x="320" y="360" width="160" height="40" rx="6" fill="url(#gradient-med)"/>
     <text x="400" y="385" class="box-title" text-anchor="middle">Decoder</text>
   </g>
 
   <!-- FtpProcessor -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('processor')">
     <rect x="320" y="430" width="160" height="40" rx="6" fill="url(#gradient-med)"/>
     <text x="400" y="455" class="box-title" text-anchor="middle">FtpProcessor</text>
   </g>
 
   <!-- CDREnricher -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('enricher')">
     <rect x="320" y="500" width="160" height="40" rx="6" fill="url(#gradient-med)"/>
     <text x="400" y="525" class="box-title" text-anchor="middle">CDREnricher</text>
   </g>
 
   <!-- CDRBuffer -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('buffer')">
     <rect x="320" y="570" width="160" height="40" rx="6" fill="url(#gradient-med)"/>
     <text x="400" y="595" class="box-title" text-anchor="middle">CDRBuffer</text>
   </g>
 
   <!-- CDR_DAO -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('dao')">
     <rect x="320" y="640" width="160" height="40" rx="6" fill="url(#gradient-med)"/>
     <text x="400" y="665" class="box-title" text-anchor="middle">CDR_DAO</text>
   </g>
 
   <!-- CDRAggregator -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('aggregator')">
     <rect x="240" y="720" width="150" height="40" rx="6" fill="url(#gradient-med)"/>
     <text x="315" y="745" class="box-title" text-anchor="middle">CDRAggregator</text>
   </g>
 
   <!-- NeonDB -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('db')">
     <rect x="410" y="720" width="150" height="40" rx="6" fill="url(#gradient-db)"/>
     <text x="485" y="745" class="box-title" text-anchor="middle">NeonDB</text>
   </g>
 
-  <!-- RolesHandler -->
-  <g filter="url(#shadow)">
-    <rect x="240" y="780" width="150" height="40" rx="6" fill="url(#gradient-med)"/>
-    <text x="315" y="805" class="box-title" text-anchor="middle">RolesHandler</text>
-  </g>
+  <!-- RolesHandler removed to simplify Data Plane flow -->
 
   <!-- CSVFormatter -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('csv')">
     <rect x="410" y="780" width="150" height="40" rx="6" fill="url(#gradient-med)"/>
     <text x="485" y="805" class="box-title" text-anchor="middle">CSVFormatter</text>
   </g>
 
   <!-- RmiFileSender -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('rmi')">
     <rect x="320" y="850" width="160" height="40" rx="6" fill="url(#gradient-med)"/>
     <text x="400" y="875" class="box-title" text-anchor="middle">RmiFileSender</text>
   </g>
 
   <!-- Downstream: fraud-service -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('fraud')">
     <rect x="250" y="1000" width="140" height="40" rx="6" fill="url(#gradient-dest)"/>
     <text x="320" y="1025" class="box-title" text-anchor="middle">fraud-service</text>
   </g>
 
   <!-- Downstream: billing-service -->
-  <g filter="url(#shadow)">
+  <g filter="url(#shadow)" class="clickable-node" onclick="showNodeDetails('billing')">
     <rect x="410" y="1000" width="140" height="40" rx="6" fill="url(#gradient-dest)"/>
     <text x="480" y="1025" class="box-title" text-anchor="middle">billing-service</text>
   </g>
@@ -637,6 +660,121 @@ function formatNum(n) {
 
 let currentUser = null;
 const levelLabel = { admin: 'Admin', manager: 'Manager', 'read-only': 'Read Only' };
+
+const NODE_INFO = {
+  pgw: {
+    title: "PGW Simulator",
+    class: "pgw-service/src/main/java/pgw/PgwCdrGenerator.java",
+    desc: "Simulates Packet Data Gateway sessions generating network data records.",
+    rules: "• Outputs raw ASN.1 binary chunks\n• Simulates volume bytes and session durations"
+  },
+  msc: {
+    title: "MSC Simulator",
+    class: "msc-service/src/main/java/msc/MscCdrGenerator.java",
+    desc: "Simulates Mobile Switching Center voice calls.",
+    rules: "• Simulates calling/called number dialing\n• Generates random durations up to 10 minutes"
+  },
+  smsc: {
+    title: "SMSC Simulator",
+    class: "smsc-service/src/main/java/smsc/SmscCdrGenerator.java",
+    desc: "Simulates Short Message Service Center message deliveries.",
+    rules: "• Simulates delivery status (DELIVERED vs FAILED)\n• Generates random payload text sizes"
+  },
+  ftp: {
+    title: "FTP Server",
+    class: "pure-ftpd container (port 2121)",
+    desc: "Acts as the central storage repository where elements write raw call records.",
+    rules: "• Enforces FTP authorization write credentials\n• Serves directories for Downloader polling"
+  },
+  downloader: {
+    title: "FTP Downloader",
+    class: "mediation-service/src/main/java/mediation/FtpDownloader.java",
+    desc: "Background thread that polls the FTP server and pulls unsynced raw files.",
+    rules: "• Interval: Polling every 5 seconds\n• Cleans remote directory upon safe retrieval"
+  },
+  decoder: {
+    title: "ASN.1 / Binary Decoder",
+    class: "mediation-service/src/main/java/mediation/Decoder.java",
+    desc: "Decodes binary records into structured Java objects.",
+    rules: "• Leverages BouncyCastle ASN.1 parser\n• Converts raw streams to Record instances"
+  },
+  processor: {
+    title: "Mediation Processor",
+    class: "mediation-service/src/main/java/mediation/FtpProcessor.java",
+    desc: "Applies validation rules and filters out invalid records.",
+    rules: "• Voice calls: must be > 3 seconds duration\n• SMS deliveries: must have status 'DELIVERED'\n• Data sessions: duration must be > 0s and bytes > 0\n• Failed records: logged to rejection database logs"
+  },
+  enricher: {
+    title: "CDR Enricher",
+    class: "mediation-service/src/main/java/mediation/CDREnricher.java",
+    desc: "Enriches records by looking up MSISDN prefixes in cached reference lists.",
+    rules: "• Matches prefix to subscriber profiles\n• Identifies Tier (Premium/Standard) and HPLMN"
+  },
+  buffer: {
+    title: "Staging Buffer",
+    class: "mediation-service/src/main/java/processing/CDRBuffer.java",
+    desc: "Stages validated records in a thread-safe queue for batch flushing.",
+    rules: "• Staging Queue type: Thread-safe List\n• Batch limit: Flushes database every 50 records"
+  },
+  dao: {
+    title: "Database Ingestion (DAO)",
+    class: "mediation-service/src/main/java/processing/CDR_DAO.java",
+    desc: "Responsible for executing SQL insertions and data pipeline operations.",
+    rules: "• Handles duplicates using ON CONFLICT DO NOTHING\n• Executes upserts for aggregate hourly/daily tables"
+  },
+  db: {
+    title: "Neon Serverless Postgres",
+    class: "Neon PostgreSQL Cloud Database",
+    desc: "Centralized serverless relational database housing subscribers, logs, and stats.",
+    rules: "• Connection Pool: HikariCP (active sizing)\n• Enforces aggregate unique bounds constraints"
+  },
+  aggregator: {
+    title: "Statistics Aggregator",
+    class: "mediation-service/src/main/java/processing/CDRAggregator.java",
+    desc: "Maintains running hourly and daily aggregate maps to avoid slow table scans.",
+    rules: "• Uses ConcurrentHashMap key grouping\n• Precomputes totals dynamically on CDR arrival"
+  },
+  csv: {
+    title: "CSV Formatter",
+    class: "mediation-service/src/main/java/mediation/CSVFormatter.java",
+    desc: "Formats accumulated aggregates into CSV strings for downstream delivery.",
+    rules: "• Structured column alignments\n• Triggers upon buffer aggregation flushes"
+  },
+  rmi: {
+    title: "RMI File Sender",
+    class: "mediation-service/src/main/java/mediation/RmiFileSender.java",
+    desc: "Transmits formatted files to downstream services using RMI connection stubs.",
+    rules: "• Port: RMI registry on port 1099\n• Handles network retry connections"
+  },
+  fraud: {
+    title: "Fraud Service",
+    class: "fraud-service/src/main/java/fraud/FraudEngine.java",
+    desc: "Downstream server parsing real-time traffic statistics for fraud detection.",
+    rules: "• Listens on remote RMI stubs\n• Monitors massive volume anomalies"
+  },
+  billing: {
+    title: "Billing Service",
+    class: "billing-service/src/main/java/billing/BillingEngine.java",
+    desc: "Downstream service receiving processed transactions to generate subscriber invoices.",
+    rules: "• Listens on remote RMI stubs\n• Triggers invoicing runs per billing cycle"
+  }
+};
+
+function showNodeDetails(nodeKey) {
+  const info = NODE_INFO[nodeKey];
+  if (!info) return;
+  
+  document.getElementById('obsTitle').textContent = info.title;
+  document.getElementById('obsClass').textContent = info.class;
+  document.getElementById('obsDesc').textContent = info.desc;
+  document.getElementById('obsRules').textContent = info.rules;
+  
+  document.getElementById('observabilityBox').style.right = '0px';
+}
+
+function closeObservability() {
+  document.getElementById('observabilityBox').style.right = '-320px';
+}
 
 async function checkAuth() {
   try {
