@@ -61,7 +61,8 @@ public class CDR_DAO {
      */
     public static void insertCdr(Object cdr,
                                  CDREnricher.SubscriberInfo info,
-                                 String sourceFile) {
+                                 String sourceFile,
+                                 String rejectionReason) {
         // Normalise fields from whichever CDR type we received
         String dialA      = getDialA(cdr);
         String dialB      = getDialB(cdr);
@@ -74,15 +75,16 @@ public class CDR_DAO {
             DB.executeUpdate("""
                 INSERT INTO mediation_cdr
                   (dial_a, dial_b, start_time, duration, service_id,
-                   hplmn, external_charges, record_type, source_file)
-                VALUES (?,?, CAST(? AS TIMESTAMP),?,?,?,?,?,?)
+                   hplmn, external_charges, record_type, source_file, rejection_reason)
+                VALUES (?,?, CAST(? AS TIMESTAMP),?,?,?,?,?,?,?)
                 ON CONFLICT (dial_a, dial_b, start_time, duration) DO NOTHING
             """,
                     dialA, dialB, startTime, duration, serviceId,
                     info != null ? info.hplmn() : null, // null if subscriber not in CSV
                     0.00,       // external_charges: always 0 at mediation layer
                     recordType,
-                    sourceFile);
+                    sourceFile,
+                    rejectionReason);
         } catch (Exception e) {
             System.err.println("CdrDao.insertCdr failed: " + e.getMessage());
         }

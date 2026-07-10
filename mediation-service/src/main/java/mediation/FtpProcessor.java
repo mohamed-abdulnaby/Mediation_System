@@ -19,23 +19,29 @@ public class FtpProcessor {
             aggregator                              // so buffer can flush aggregation to DB
     );
 
-    public void process(byte[] data) {
+    public void process(byte[] data, String sourceFile) {
 
         try {
 
             // 1. Decode
             Object cdr = decoder.decode(data);
 
-            // 2. Filter
-            if (!isValid(cdr)) {
-
-                System.out.println("REJECTED CDR");
+            // 2. Filter / Validate
+            String rejectionReason = getRejectionReason(cdr);
+            if (rejectionReason != null) {
+                System.out.println("REJECTED CDR: " + rejectionReason);
+                CDREnricher.SubscriberInfo info = new CDREnricher.SubscriberInfo("Unknown", "Unknown", "Standard", "UNKNOWN");
+                String dialA = getDialA(cdr);
+                if (dialA != null) {
+                    info = enricher.lookup(dialA);
+                }
+                processing.CDR_DAO.insertCdr(cdr, info, sourceFile, rejectionReason);
                 return;
             }
             if (dedup.isDuplicate(cdr)) return;                      // dedup
             CDREnricher.SubscriberInfo info = enricher.lookup(getDialA(cdr)); // enrich — pass msisdn String
             aggregator.aggregate(cdr, info.hplmn());                  // aggregate
-            buffer.add(cdr, info);                                          // buffer → sorts → DB → CSV
+            buffer.add(cdr, info, sourceFile);                        // buffer → sorts → DB → CSV
 
             // 3. Output
             //printCdr(cdr);
@@ -45,55 +51,47 @@ public class FtpProcessor {
         }
     }
 
-    // ================= FILTER =================
+    // ================= FILTER & AUDIT =================
 
-    private boolean isValid(Object cdr) {
+    private String getRejectionReason(Object cdr) {
+        if (cdr == null) {
+            return "Failed to decode CDR structure";
+        }
 
         // MSC FILTER
         if (cdr instanceof MscVoiceCdr msc) {
-
+            if (msc.callingNumber == null || msc.calledNumber == null) {
+                return "Missing calling or called phone number";
+            }
             if (msc.callDuration <= 3) {
-                return false;
+                return "Voice call duration ≤ 3s (short call)";
             }
-
-            if (msc.callingNumber == null ||
-                    msc.calledNumber == null) {
-                return false;
-            }
-
-            return true;
+            return null;
         }
 
         // SMSC FILTER
         if (cdr instanceof SmscCdr sms) {
-
             if (!"DELIVERED".equals(sms.status)) {
-                return false;
+                return "SMS transmission failed (Status: " + sms.status + ")";
             }
-
-            if (sms.messageSize == null ||
-                    sms.messageSize.isEmpty()) {
-                return false;
+            if (sms.messageSize == null || sms.messageSize.isEmpty()) {
+                return "Empty SMS message payload";
             }
-
-            return true;
+            return null;
         }
 
         // PGW FILTER
         if (cdr instanceof PgwDataCdr pgw) {
-
             if (pgw.totalBytes <= 0) {
-                return false;
+                return "Empty mobile data session (bytes = 0)";
             }
-
             if (pgw.sessionDuration <= 0) {
-                return false;
+                return "Invalid data session duration (seconds ≤ 0)";
             }
-
-            return true;
+            return null;
         }
 
-        return false;
+        return "Unknown CDR record type: " + cdr.getClass().getSimpleName();
     }
 
     // Extracts dial_a (calling MSISDN) from any CDR type — used for enrichment lookup

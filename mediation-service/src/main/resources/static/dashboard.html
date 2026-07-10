@@ -47,15 +47,56 @@ html,body{height:100%;background:var(--bg);color:var(--text-primary);font-family
 @media(max-width:1024px){.dashboard-grid{grid-template-columns:1fr;}}
 
 /* Metric Cards */
-.metrics-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
+.metrics-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;}
+@media(max-width:1200px){.metrics-row{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:768px){.metrics-row{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:480px){.metrics-row{grid-template-columns:repeat(1,1fr);}}
 .metric-card{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;position:relative;overflow:hidden;}
 .metric-card::after{content:'';position:absolute;left:0;top:0;width:3px;height:100%;background:var(--blue-light);opacity:0.6;}
 .metric-card.success::after{background:var(--success);}
 .metric-card.warning::after{background:var(--warning);}
+.metric-card.danger::after{background:var(--danger);}
 .metric-label{font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;}
 .metric-value{font-size:1.75rem;font-weight:800;margin-top:0.25rem;font-family:'JetBrains Mono',monospace;}
 .metric-sub{font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;}
+
+/* Rejections Table */
+.rejections-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+}
+.rejections-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+.rejections-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.rejections-table tr:hover {
+  background: rgba(255,255,255,0.02);
+}
+.rejections-table tr:last-child td {
+  border-bottom: none;
+}
+.rejection-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+}
 
 /* Panel Cards */
 .panel-card{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;display:flex;flex-direction:column;}
@@ -118,6 +159,11 @@ html,body{height:100%;background:var(--bg);color:var(--text-primary);font-family
         <div class="metric-value" id="valSmsMsgs">0</div>
         <div class="metric-sub">Downstream SMS deliveries</div>
       </div>
+      <div class="metric-card danger">
+        <div class="metric-label">Rejected CDRs</div>
+        <div class="metric-value" id="valRejectedCdr">0</div>
+        <div class="metric-sub">Stored for error audits</div>
+      </div>
     </div>
 
     <!-- Main Dashboard Grid -->
@@ -173,6 +219,34 @@ html,body{height:100%;background:var(--bg);color:var(--text-primary);font-family
             <span class="stats-item-value" id="statsTotalBytes">0 MB</span>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Rejection Log Panel -->
+    <div class="panel-card" style="margin-top: 1.5rem;">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title" style="color: var(--danger);">Rejection &amp; Error Audit Log</h2>
+          <p class="panel-subtitle">Traceability log showing failing transactions, their source files, and reason for rejection.</p>
+        </div>
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="rejections-table">
+          <thead>
+            <tr>
+              <th>Subscriber (Dial A)</th>
+              <th>Record Type</th>
+              <th>Source File</th>
+              <th>Rejection Reason</th>
+              <th>Time Detected</th>
+            </tr>
+          </thead>
+          <tbody id="rejectionLogBody">
+            <tr>
+              <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">No rejections detected in current pipeline.</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </main>
@@ -495,14 +569,45 @@ async function fetchStats() {
     document.getElementById('valAggBuckets').textContent = formatNum(d.total_aggregated_buckets);
     document.getElementById('valVoiceSec').textContent = formatNum(d.total_duration_sec) + 's';
     document.getElementById('valSmsMsgs').textContent = formatNum(d.total_messages);
+    document.getElementById('valRejectedCdr').textContent = formatNum(d.rejected_cdr);
     
     document.getElementById('statsVoiceCount').textContent = formatNum(d.voice_cdr);
     document.getElementById('statsSmsCount').textContent = formatNum(d.sms_cdr);
     document.getElementById('statsDataCount').textContent = formatNum(d.data_cdr);
     document.getElementById('statsTotalBytes').textContent = (d.total_bytes / (1024 * 1024)).toFixed(2) + ' MB';
     
+    // Render Rejection Table
+    const tbody = document.getElementById('rejectionLogBody');
+    if (d.rejected_logs && d.rejected_logs.length > 0) {
+      tbody.innerHTML = d.rejected_logs.map(log => `
+        <tr>
+          <td style="font-family:'JetBrains Mono',monospace;">${escapeHtml(log.dial_a || 'Unknown')}</td>
+          <td><span class="stats-item-sub">${escapeHtml(log.record_type)}</span></td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(log.source_file || 'N/A')}</td>
+          <td><span class="rejection-badge">${escapeHtml(log.rejection_reason)}</span></td>
+          <td style="color: var(--text-muted);">${formatDate(log.created_at)}</td>
+        </tr>
+      `).join('');
+    } else {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">No rejections detected in current pipeline.</td></tr>`;
+    }
   } catch (e) {
     setStatus(false);
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+function formatDate(str) {
+  if (!str) return 'N/A';
+  try {
+    const d = new Date(str);
+    return d.toLocaleTimeString() + ' ' + d.toLocaleDateString();
+  } catch (e) {
+    return str;
   }
 }
 

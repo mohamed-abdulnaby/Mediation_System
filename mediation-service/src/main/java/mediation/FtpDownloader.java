@@ -98,7 +98,7 @@ public class FtpDownloader {
                         if (success) {
                             byte[] data = baos.toByteArray();
                             processedFiles.add(file);
-                            processor.process(data);
+                            processor.process(data, file);
                             System.out.println("[FtpDownloader] Downloaded: " + file);
                         } else {
                             System.err.println("[FtpDownloader] Failed to download: " + file);

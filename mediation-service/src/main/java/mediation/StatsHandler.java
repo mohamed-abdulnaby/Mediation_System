@@ -30,14 +30,42 @@ public class StatsHandler implements HttpHandler {
         }
 
         try {
-            long totalCdr = getCount("SELECT COUNT(*) FROM mediation_cdr");
-            long voiceCdr = getCount("SELECT COUNT(*) FROM mediation_cdr WHERE record_type = 'MscVoiceCdr'");
-            long smsCdr   = getCount("SELECT COUNT(*) FROM mediation_cdr WHERE record_type = 'SmscCdr'");
-            long dataCdr  = getCount("SELECT COUNT(*) FROM mediation_cdr WHERE record_type = 'PgwDataCdr'");
-            long voiceSec = getSum("SELECT SUM(duration) FROM mediation_cdr");
+            long totalCdr = getCount("SELECT COUNT(*) FROM mediation_cdr WHERE rejection_reason IS NULL");
+            long voiceCdr = getCount("SELECT COUNT(*) FROM mediation_cdr WHERE record_type = 'MscVoiceCdr' AND rejection_reason IS NULL");
+            long smsCdr   = getCount("SELECT COUNT(*) FROM mediation_cdr WHERE record_type = 'SmscCdr' AND rejection_reason IS NULL");
+            long dataCdr  = getCount("SELECT COUNT(*) FROM mediation_cdr WHERE record_type = 'PgwDataCdr' AND rejection_reason IS NULL");
+            long voiceSec = getSum("SELECT SUM(duration) FROM mediation_cdr WHERE record_type = 'MscVoiceCdr' AND rejection_reason IS NULL");
             long aggCount = getCount("SELECT COUNT(*) FROM mediation_cdr_aggregated");
             long dataBytes = getSum("SELECT SUM(total_bytes) FROM mediation_cdr_aggregated");
             long smsMsgs  = getSum("SELECT SUM(total_messages) FROM mediation_cdr_aggregated");
+            long rejectedCdr = getCount("SELECT COUNT(*) FROM mediation_cdr WHERE rejection_reason IS NOT NULL");
+
+            // Query recent rejected logs
+            List<Map<String, Object>> rejectedLogs = DB.executeSelect(
+                "SELECT dial_a, record_type, source_file, rejection_reason, created_at " +
+                "FROM mediation_cdr " +
+                "WHERE rejection_reason IS NOT NULL " +
+                "ORDER BY id DESC LIMIT 5"
+            );
+
+            StringBuilder logsJson = new StringBuilder("[");
+            for (int i = 0; i < rejectedLogs.size(); i++) {
+                Map<String, Object> log = rejectedLogs.get(i);
+                String dialA = String.valueOf(log.getOrDefault("dial_a", ""));
+                String recordType = String.valueOf(log.getOrDefault("record_type", ""));
+                String sourceFile = String.valueOf(log.getOrDefault("source_file", ""));
+                String reason = String.valueOf(log.getOrDefault("rejection_reason", ""));
+                String createdAt = String.valueOf(log.getOrDefault("created_at", ""));
+
+                logsJson.append(String.format(
+                    "{\"dial_a\":\"%s\",\"record_type\":\"%s\",\"source_file\":\"%s\",\"rejection_reason\":\"%s\",\"created_at\":\"%s\"}",
+                    escapeJson(dialA), escapeJson(recordType), escapeJson(sourceFile), escapeJson(reason), escapeJson(createdAt)
+                ));
+                if (i < rejectedLogs.size() - 1) {
+                    logsJson.append(",");
+                }
+            }
+            logsJson.append("]");
 
             String json = String.format(
                 "{" +
@@ -48,9 +76,11 @@ public class StatsHandler implements HttpHandler {
                 "\"total_duration_sec\":%d," +
                 "\"total_bytes\":%d," +
                 "\"total_messages\":%d," +
-                "\"total_aggregated_buckets\":%d" +
+                "\"total_aggregated_buckets\":%d," +
+                "\"rejected_cdr\":%d," +
+                "\"rejected_logs\":%s" +
                 "}",
-                totalCdr, voiceCdr, smsCdr, dataCdr, voiceSec, dataBytes, smsMsgs, aggCount
+                totalCdr, voiceCdr, smsCdr, dataCdr, voiceSec, dataBytes, smsMsgs, aggCount, rejectedCdr, logsJson.toString()
             );
 
             sendResponse(ex, 200, json);
@@ -58,6 +88,10 @@ public class StatsHandler implements HttpHandler {
             System.err.println("[StatsHandler] Error: " + e.getMessage());
             sendResponse(ex, 500, "{\"error\":\"" + e.getMessage().replace("\"", "'") + "\"}");
         }
+    }
+
+    private String escapeJson(String s) {
+        return s == null ? "" : s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private long getCount(String sql) {

@@ -43,7 +43,7 @@ public class CDRBuffer {
      * WHY a record? Immutable value data — compiler generates constructor,
      * getters, equals, hashCode, toString with zero boilerplate.
      */
-    private record CdrEntry(Object cdr, CDREnricher.SubscriberInfo info) {}
+    private record CdrEntry(Object cdr, CDREnricher.SubscriberInfo info, String sourceFile) {}
 
     // Bounded at 10,000 — if the DB is slow and the queue fills up,
     // offer() returns false and we trigger an emergency flush.
@@ -72,8 +72,8 @@ public class CDRBuffer {
      *   offer() returns false immediately → we can emergency-flush and retry,
      *   keeping the FTP pipeline moving without blocking.
      */
-    public void add(Object cdr, CDREnricher.SubscriberInfo info) {
-        CdrEntry entry = new CdrEntry(cdr, info);
+    public void add(Object cdr, CDREnricher.SubscriberInfo info, String sourceFile) {
+        CdrEntry entry = new CdrEntry(cdr, info, sourceFile);
         if (!queue.offer(entry)) {
             // Queue backed up to 10,000 — emergency flush to make room
             System.err.println("CDRBuffer: FULL — emergency flush");
@@ -106,7 +106,7 @@ public class CDRBuffer {
 
         // Persist each CDR with its enrichment info to mediation_cdr
         for (CdrEntry entry : batch) {
-            CDR_DAO.insertCdr(entry.cdr(), entry.info(), null);
+            CDR_DAO.insertCdr(entry.cdr(), entry.info(), entry.sourceFile(), null);
         }
 
         aggregator.flushToDB();     // write aggregation buckets → mediation_cdr_aggregated
