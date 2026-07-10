@@ -117,6 +117,7 @@ html,body{height:100%;background:var(--bg);color:var(--text-primary);font-family
 .stats-item-value{font-size:1.1rem;font-weight:700;font-family:'JetBrains Mono',monospace;}
 
 .footer{border-top:1px solid var(--border);padding:1.25rem 0;text-align:center;font-size:0.78rem;color:var(--text-muted);margin-top:3rem;}
+.nav-badge{background:var(--blue-dim);border:1px solid rgba(29,107,224,0.3);color:var(--blue-light);padding:0.25rem 0.75rem;border-radius:100px;font-size:0.75rem;font-weight:600;}
 </style>
 </head>
 <body>
@@ -131,7 +132,10 @@ html,body{height:100%;background:var(--bg);color:var(--text-primary);font-family
         <a href="/dashboard.html" class="nav-link active">Dashboard</a>
         <a href="/roles.html" class="nav-link">Roles Console</a>
       </div>
-      <div class="nav-spacer"></div>
+      <div style="display:flex; align-items:center; gap:1rem; margin-right:1rem;">
+        <span class="nav-badge" id="navUser" style="background:rgba(255,255,255,0.05); color:#fff; border:1px solid var(--border);">Viewer</span>
+        <button onclick="handleLogout()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.875rem; font-weight:500; transition:color 0.2s; outline:none;">Sign Out</button>
+      </div>
       <div class="api-status" id="apiStatus"><span class="status-dot" id="statusDot"></span><span id="statusText">Connecting…</span></div>
     </div>
   </nav>
@@ -558,6 +562,10 @@ document.getElementById('svgContainer').innerHTML = SVG_TEMPLATE;
 async function fetchStats() {
   try {
     const res = await fetch(STATS_API);
+    if (res.status === 401) {
+      window.location.href = '/login.html';
+      return;
+    }
     if (!res.ok) throw new Error('API offline');
     const d = await res.json();
     
@@ -627,9 +635,35 @@ function formatNum(n) {
   return Number(n).toLocaleString();
 }
 
-// Poll stats every 2.5 seconds
-setInterval(fetchStats, 2500);
-fetchStats();
+let currentUser = null;
+const levelLabel = { admin: 'Admin', manager: 'Manager', 'read-only': 'Read Only' };
+
+async function checkAuth() {
+  try {
+    const res = await fetch('/api/me');
+    if (!res.ok) {
+      window.location.href = '/login.html';
+      return;
+    }
+    currentUser = await res.json();
+    document.getElementById('navUser').textContent = currentUser.username + ' (' + (levelLabel[currentUser.access_level] || currentUser.access_level) + ')';
+    
+    // Start polling stats after authentication succeeds
+    setInterval(fetchStats, 2500);
+    fetchStats();
+  } catch (e) {
+    window.location.href = '/login.html';
+  }
+}
+
+async function handleLogout() {
+  try {
+    await fetch('/api/logout', { method: 'POST' });
+  } catch (e) {}
+  window.location.href = '/login.html';
+}
+
+checkAuth();
 </script>
 </body>
 </html>

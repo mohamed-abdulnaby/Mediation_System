@@ -136,7 +136,10 @@ tr:hover td{background:rgba(255,255,255,0.02);}
         <a href="/dashboard.html" class="nav-link">Dashboard</a>
         <a href="/roles.html" class="nav-link active">Roles Console</a>
       </div>
-      <div class="nav-spacer"></div>
+      <div style="display:flex; align-items:center; gap:1rem; margin-right:1rem;">
+        <span class="nav-badge" id="navUser" style="background:rgba(255,255,255,0.05); color:#fff; border:1px solid var(--border);">Viewer</span>
+        <button onclick="handleLogout()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.875rem; font-weight:500; transition:color 0.2s; outline:none;">Sign Out</button>
+      </div>
       <div class="api-status" id="apiStatus"><span class="status-dot" id="statusDot"></span><span id="statusText">Connecting…</span></div>
     </div>
   </nav>
@@ -226,6 +229,10 @@ let deletingId  = null;
 async function apiFetch(url, opts = {}) {
   opts.headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
   const res = await fetch(url, opts);
+  if (res.status === 401) {
+    window.location.href = '/login.html';
+    return;
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || 'Request failed');
@@ -286,17 +293,27 @@ function render(roles) {
 
   if (!roles.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
-  tbody.innerHTML = roles.map(r => `
+
+  const isReadOnly = (currentUser && currentUser.access_level === 'read-only');
+  const isAdmin = (currentUser && currentUser.access_level === 'admin');
+
+  tbody.innerHTML = roles.map(r => {
+    let actionsHtml = '';
+    if (!isReadOnly) {
+      actionsHtml += `<button class="btn-icon edit" onclick="openEditModal(${r.id},'${escHtml(r.name)}','${escHtml(r.description||'')}','${r.access_level}')" title="Edit">✏️</button>`;
+    }
+    if (isAdmin) {
+      actionsHtml += `<button class="btn-icon delete" onclick="openDeleteConfirm(${r.id},'${escHtml(r.name)}')" title="Delete">🗑️</button>`;
+    }
+    return `
     <tr>
       <td><span class="id-badge">#${r.id}</span></td>
       <td><span class="role-name">${escHtml(r.name)}</span></td>
       <td><span class="role-desc">${escHtml(r.description || '—')}</span></td>
       <td><span class="badge ${levelBadge[r.access_level]||'badge-slate'}">${levelLabel[r.access_level]||r.access_level}</span></td>
-      <td><div class="actions">
-        <button class="btn-icon edit" onclick="openEditModal(${r.id},'${escHtml(r.name)}','${escHtml(r.description||'')}','${r.access_level}')" title="Edit">✏️</button>
-        <button class="btn-icon delete" onclick="openDeleteConfirm(${r.id},'${escHtml(r.name)}')" title="Delete">🗑️</button>
-      </div></td>
-    </tr>`).join('');
+      <td><div class="actions">${actionsHtml}</div></td>
+    </tr>`;
+  }).join('');
 }
 
 // ── Modals ────────────────────────────────────────────────────────────
@@ -345,7 +362,38 @@ document.getElementById('modalOverlay').addEventListener('click', e => { if(e.ta
 document.getElementById('confirmOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeConfirm(); });
 document.addEventListener('keydown', e => { if(e.key==='Escape'){closeModal();closeConfirm();} });
 
-loadRoles();
+let currentUser = null;
+
+async function checkAuth() {
+  try {
+    const res = await fetch('/api/me');
+    if (!res.ok) {
+      window.location.href = '/login.html';
+      return;
+    }
+    currentUser = await res.json();
+    document.getElementById('navUser').textContent = currentUser.username + ' (' + (levelLabel[currentUser.access_level] || currentUser.access_level) + ')';
+    
+    // Disable create button if read-only
+    if (currentUser.access_level === 'read-only') {
+      const createBtn = document.getElementById('createBtn');
+      if (createBtn) createBtn.style.display = 'none';
+    }
+    
+    loadRoles();
+  } catch (e) {
+    window.location.href = '/login.html';
+  }
+}
+
+async function handleLogout() {
+  try {
+    await fetch('/api/logout', { method: 'POST' });
+  } catch (e) {}
+  window.location.href = '/login.html';
+}
+
+checkAuth();
 </script>
 </body>
 </html>

@@ -24,6 +24,8 @@ public class StaticHandler implements HttpHandler {
         String file = "roles.html"; // default page
         if (path.contains("dashboard")) {
             file = "dashboard.html";
+        } else if (path.contains("login")) {
+            file = "login.html";
         }
 
         InputStream resource = getClass().getResourceAsStream("/static/" + file);

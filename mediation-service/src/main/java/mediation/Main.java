@@ -9,9 +9,18 @@ public class Main {
         // ── 1. Start the Admin HTTP server on port 8080 ──────────────────
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
-            server.createContext("/api/roles", new RolesHandler());
-            server.createContext("/api/stats", new StatsHandler());
-            server.createContext("/",          new StaticHandler());
+            
+            // Authentication routes (unfiltered)
+            AuthHandler authHandler = new AuthHandler();
+            server.createContext("/api/login",  authHandler);
+            server.createContext("/api/logout", authHandler);
+            server.createContext("/api/me",     authHandler);
+
+            // Secure administrative routes (filtered)
+            server.createContext("/api/roles", new AuthFilter(new RolesHandler()));
+            server.createContext("/api/stats", new AuthFilter(new StatsHandler()));
+            server.createContext("/",          new AuthFilter(new StaticHandler()));
+
             server.setExecutor(Executors.newFixedThreadPool(4));
             server.start();
             System.out.println("Admin UI running at http://localhost:8080");
