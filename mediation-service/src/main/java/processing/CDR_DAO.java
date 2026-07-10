@@ -109,6 +109,11 @@ public class CDR_DAO {
                   (record_type, dial_a, window_type, window_start, window_end,
                    total_records, total_duration, total_bytes, total_messages)
                 VALUES (?,?,?, CAST(? AS TIMESTAMPTZ), CAST(? AS TIMESTAMPTZ),?,?,?,?)
+                ON CONFLICT (record_type, dial_a, window_type, window_start) DO UPDATE SET
+                  total_records  = mediation_cdr_aggregated.total_records + EXCLUDED.total_records,
+                  total_duration = mediation_cdr_aggregated.total_duration + EXCLUDED.total_duration,
+                  total_bytes    = mediation_cdr_aggregated.total_bytes + EXCLUDED.total_bytes,
+                  total_messages = mediation_cdr_aggregated.total_messages + EXCLUDED.total_messages
             """,
                     r.recordType, r.msisdn, windowType, windowStart, windowEnd,
                     r.totalRecords, r.totalDuration, r.totalBytes, r.totalMessages);

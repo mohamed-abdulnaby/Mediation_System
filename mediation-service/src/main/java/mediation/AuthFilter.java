@@ -13,9 +13,11 @@ public class AuthFilter implements HttpHandler {
     public static class UserSession {
         public final String username;
         public final String accessLevel; // "admin", "manager", "read-only"
+        public final long createdAt;
         public UserSession(String username, String accessLevel) {
             this.username = username;
             this.accessLevel = accessLevel;
+            this.createdAt = System.currentTimeMillis();
         }
     }
     

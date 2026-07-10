@@ -296,156 +296,156 @@ const SVG_TEMPLATE = `
 
   <!-- ==================== OUTER BOXES ==================== -->
   
-  <!-- Mediation Service Outer Box -->
-  <rect x="230" y="30" width="340" height="755" rx="16" fill="#040408" stroke="url(#gradient-border)" stroke-width="1.5"/>
-  <text x="245" y="52" class="group-label">Mediation Service</text>
+  <!-- Simulators Outer Box (Top) -->
+  <rect x="40" y="30" width="480" height="185" rx="16" fill="#040408" stroke="url(#gradient-border)" stroke-width="1.5"/>
+  <text x="55" y="50" class="group-label">Simulators</text>
 
-  <!-- Simulators Outer Box -->
-  <rect x="40" y="805" width="480" height="185" rx="16" fill="#040408" stroke="url(#gradient-border)" stroke-width="1.5"/>
-  <text x="55" y="825" class="group-label">Simulators</text>
+  <!-- Mediation Service Outer Box (Middle) -->
+  <rect x="230" y="240" width="340" height="700" rx="16" fill="#040408" stroke="url(#gradient-border)" stroke-width="1.5"/>
+  <text x="245" y="262" class="group-label">Mediation Service</text>
 
-  <!-- Downstream Outer Box (Top Right alignment) -->
-  <rect x="580" y="30" width="190" height="150" rx="16" fill="#040408" stroke="url(#gradient-border)" stroke-width="1.5"/>
-  <text x="595" y="50" class="group-label">Downstream</text>
+  <!-- Downstream Outer Box (Bottom) -->
+  <rect x="230" y="965" width="340" height="100" rx="16" fill="#040408" stroke="url(#gradient-border)" stroke-width="1.5"/>
+  <text x="245" y="985" class="group-label">Downstream</text>
 
 
   <!-- ==================== CONNECTOR PATHS WITH CORRECT DIRECTIONS ==================== -->
   
   <!-- Simulators -> FTP (Downwards) -->
-  <path id="pathPgw" class="connector-bg" marker-end="url(#arrow-down)" d="M 140 885 L 140 910 L 280 910 L 280 918"/>
-  <path id="pathMsc" class="connector-bg" marker-end="url(#arrow-down)" d="M 280 885 L 280 918"/>
-  <path id="pathSmsc" class="connector-bg" marker-end="url(#arrow-down)" d="M 420 885 L 420 910 L 280 910 L 280 918"/>
+  <path id="pathPgw" class="connector-bg" marker-end="url(#arrow-down)" d="M 140 110 L 140 125 L 280 125 L 280 143"/>
+  <path id="pathMsc" class="connector-bg" marker-end="url(#arrow-down)" d="M 280 110 L 280 143"/>
+  <path id="pathSmsc" class="connector-bg" marker-end="url(#arrow-down)" d="M 460 110 L 460 125 L 280 125 L 280 143"/>
 
-  <!-- FTP -> FtpDownloader (Upwards) -->
-  <path id="pathFtp" class="connector-bg" marker-end="url(#arrow-up)" d="M 280 920 L 280 790 L 400 790 L 400 767"/>
+  <!-- FTP -> FtpDownloader (Downwards) -->
+  <path id="pathFtp" class="connector-bg" marker-end="url(#arrow-down)" d="M 280 190 L 280 265 L 400 265 L 400 288"/>
   
-  <!-- Mediation Processing Stack (Upwards) -->
-  <path id="pathDecode" class="connector-bg" marker-end="url(#arrow-up)" d="M 400 720 L 400 687"/>
-  <path id="pathProcessor" class="connector-bg" marker-end="url(#arrow-up)" d="M 400 640 L 400 607"/>
-  <path id="pathEnrich" class="connector-bg" marker-end="url(#arrow-up)" d="M 400 560 L 400 527"/>
-  <path id="pathBuffer" class="connector-bg" marker-end="url(#arrow-up)" d="M 400 480 L 400 447"/>
-  <path id="pathDao" class="connector-bg" marker-end="url(#arrow-up)" d="M 400 400 L 400 367"/>
+  <!-- Mediation Processing Stack (Downwards) -->
+  <path id="pathDecode" class="connector-bg" marker-end="url(#arrow-down)" d="M 400 330 L 400 358"/>
+  <path id="pathProcessor" class="connector-bg" marker-end="url(#arrow-down)" d="M 400 400 L 400 428"/>
+  <path id="pathEnrich" class="connector-bg" marker-end="url(#arrow-down)" d="M 400 470 L 400 498"/>
+  <path id="pathBuffer" class="connector-bg" marker-end="url(#arrow-down)" d="M 400 540 L 400 568"/>
+  <path id="pathDao" class="connector-bg" marker-end="url(#arrow-down)" d="M 400 610 L 400 638"/>
   
-  <!-- Buffer -> CDRAggregator (Left-wards and Up) -->
-  <path id="pathBufferAgg" class="connector-bg" marker-end="url(#arrow-up)" d="M 400 400 L 400 380 L 300 380 L 300 287"/>
+  <!-- Buffer -> CDRAggregator (Downwards & Left) -->
+  <path id="pathBufferAgg" class="connector-bg" marker-end="url(#arrow-down)" d="M 400 610 L 400 625 L 315 625 L 315 718"/>
 
-  <!-- Aggregator -> CDR_DAO (Downwards and Right) -->
-  <path id="pathAggDao" class="connector-bg" marker-end="url(#arrow-down)" d="M 300 285 L 300 300 L 400 300 L 400 318"/>
+  <!-- Aggregator -> NeonDB (Rightwards) -->
+  <path id="pathAggDao" class="connector-bg" marker-end="url(#arrow-down)" d="M 390 740 L 408 740"/>
 
-  <!-- DAO -> NeonDB (Upwards and Right) -->
-  <path id="pathDaoDb" class="connector-bg" marker-end="url(#arrow-up)" d="M 400 320 L 400 300 L 500 300 L 500 287"/>
+  <!-- DAO -> NeonDB (Downwards & Right) -->
+  <path id="pathDaoDb" class="connector-bg" marker-end="url(#arrow-down)" d="M 400 680 L 400 695 L 485 695 L 485 718"/>
   
-  <!-- DB -> CSVFormatter (Upwards) -->
-  <path id="pathDbCsv" class="connector-bg" marker-end="url(#arrow-up)" d="M 500 240 L 500 207"/>
+  <!-- DB -> CSVFormatter (Downwards) -->
+  <path id="pathDbCsv" class="connector-bg" marker-end="url(#arrow-down)" d="M 485 760 L 485 778"/>
 
-  <!-- Roles to DB (Downwards and Right) -->
-  <path id="pathRoles" class="connector-bg" marker-end="url(#arrow-down)" d="M 300 205 L 300 220 L 500 220 L 500 238"/>
+  <!-- Roles to DB (Upwards & Right) -->
+  <path id="pathRoles" class="connector-bg" marker-end="url(#arrow-up)" d="M 390 800 L 485 800 L 485 762"/>
   
-  <!-- CSV to RmiSender (Upwards and Left) -->
-  <path id="pathCsvRmi" class="connector-bg" marker-end="url(#arrow-up)" d="M 500 160 L 500 140 L 400 140 L 400 127"/>
+  <!-- CSV to RmiSender (Downwards & Left) -->
+  <path id="pathCsvRmi" class="connector-bg" marker-end="url(#arrow-down)" d="M 485 820 L 485 835 L 400 835 L 400 848"/>
 
-  <!-- RmiSender to Downstream Services (Top Right Fork) -->
-  <path id="pathRmiFraud" class="connector-bg" marker-end="url(#arrow-down)" d="M 480 102 L 540 102 L 540 85 L 600 85"/>
-  <path id="pathRmiBill" class="connector-bg" marker-end="url(#arrow-down)" d="M 480 102 L 540 102 L 540 145 L 600 145"/>
+  <!-- RmiSender to Downstream Services (Downwards Fork) -->
+  <path id="pathRmiFraud" class="connector-bg" marker-end="url(#arrow-down)" d="M 400 890 L 400 930 L 320 930 L 320 993"/>
+  <path id="pathRmiBill" class="connector-bg" marker-end="url(#arrow-down)" d="M 400 890 L 400 930 L 480 930 L 480 993"/>
 
 
   <!-- ==================== FLOW LABELS ==================== -->
   
-  <text x="140" y="900" class="flow-label">ASN.1 BER</text>
-  <text x="280" y="905" class="flow-label">ASN.1 BER</text>
-  <text x="420" y="900" class="flow-label">ASN.1 BER</text>
+  <text x="140" y="120" class="flow-label">ASN.1 BER</text>
+  <text x="280" y="120" class="flow-label">ASN.1 BER</text>
+  <text x="420" y="120" class="flow-label">ASN.1 BER</text>
   
-  <text x="280" y="785" class="flow-label">Poll &amp; Fetch</text>
-  <text x="400" y="700" class="flow-label">Parse BouncyCastle</text>
-  <text x="400" y="620" class="flow-label">Clean / Deduplicate</text>
-  <text x="400" y="540" class="flow-label">subscribers.csv lookup</text>
-  <text x="400" y="460" class="flow-label">Sort Chronologically</text>
-  <text x="400" y="380" class="flow-label">Batch Insert</text>
+  <text x="340" y="255" class="flow-label">Poll &amp; Fetch</text>
+  <text x="400" y="348" class="flow-label">Parse BouncyCastle</text>
+  <text x="400" y="418" class="flow-label">Clean / Deduplicate</text>
+  <text x="400" y="488" class="flow-label">subscribers.csv lookup</text>
+  <text x="400" y="558" class="flow-label">Sort Chronologically</text>
+  <text x="400" y="628" class="flow-label">Batch Insert</text>
   
-  <text x="300" y="295" class="flow-label">Hourly/Daily stats</text>
-  <text x="500" y="295" class="flow-label">SQL Queries</text>
+  <text x="315" y="675" class="flow-label">Hourly/Daily stats</text>
+  <text x="485" y="675" class="flow-label">SQL Queries</text>
   
-  <text x="300" y="215" class="flow-label">roles table</text>
-  <text x="500" y="215" class="flow-label">Query Unsent</text>
-  <text x="400" y="135" class="flow-label">RMI port 1099</text>
+  <text x="430" y="812" class="flow-label">roles table</text>
+  <text x="485" y="832" class="flow-label">Query Unsent</text>
+  <text x="400" y="920" class="flow-label">RMI port 1099</text>
   
-  <text x="565" y="78" class="flow-label">RMI (Fraud)</text>
-  <text x="565" y="160" class="flow-label">RMI (Billing)</text>
+  <text x="320" y="960" class="flow-label">Deliver CSV</text>
+  <text x="480" y="960" class="flow-label">Deliver CSV</text>
 
 
   <!-- ==================== CONTINUOUSLY FLOWING DATA PACKETS (INFINITY LOOP) ==================== -->
   
   <!-- PGW -> FTP -->
   <circle r="3.5" fill="#3b82f6" filter="url(#glow-blue)">
-    <animateMotion dur="3s" repeatCount="indefinite" path="M 140 885 L 140 910 L 280 910 L 280 920"/>
+    <animateMotion dur="3s" repeatCount="indefinite" path="M 140 110 L 140 125 L 280 125 L 280 145"/>
   </circle>
   <!-- MSC -> FTP -->
   <circle r="3.5" fill="#3b82f6" filter="url(#glow-blue)">
-    <animateMotion dur="2s" repeatCount="indefinite" path="M 280 885 L 280 920"/>
+    <animateMotion dur="2s" repeatCount="indefinite" path="M 280 110 L 280 145"/>
   </circle>
   <!-- SMSC -> FTP -->
   <circle r="3.5" fill="#3b82f6" filter="url(#glow-blue)">
-    <animateMotion dur="3.5s" repeatCount="indefinite" path="M 420 885 L 420 910 L 280 910 L 280 920"/>
+    <animateMotion dur="3.5s" repeatCount="indefinite" path="M 460 110 L 460 125 L 280 125 L 280 145"/>
   </circle>
 
   <!-- FTP -> FtpDownloader -->
   <circle r="4.5" fill="#10b981" filter="url(#glow-green)">
-    <animateMotion dur="5s" repeatCount="indefinite" path="M 280 920 L 280 790 L 400 790 L 400 765"/>
+    <animateMotion dur="5s" repeatCount="indefinite" path="M 280 190 L 280 265 L 400 265 L 400 290"/>
   </circle>
   
-  <!-- Mediation Stack Packets (Upwards) -->
+  <!-- Mediation Stack Packets (Downwards) -->
   <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
-    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 400 720 L 400 685"/>
+    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 400 330 L 400 360"/>
   </circle>
   <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
-    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 400 640 L 400 605"/>
+    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 400 400 L 400 430"/>
   </circle>
   <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
-    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 400 560 L 400 525"/>
+    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 400 470 L 400 500"/>
   </circle>
   <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
-    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 400 480 L 400 445"/>
+    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 400 540 L 400 570"/>
   </circle>
   <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
-    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 400 400 L 400 365"/>
+    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 400 610 L 400 640"/>
   </circle>
 
   <!-- Buffer -> Aggregator -->
   <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
-    <animateMotion dur="2.2s" repeatCount="indefinite" path="M 400 400 L 400 380 L 300 380 L 300 285"/>
+    <animateMotion dur="2.2s" repeatCount="indefinite" path="M 400 610 L 400 625 L 315 625 L 315 720"/>
   </circle>
 
-  <!-- Aggregator -> DAO -->
+  <!-- Aggregator -> NeonDB (Rightwards) -->
   <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
-    <animateMotion dur="2.2s" repeatCount="indefinite" path="M 300 285 L 300 300 L 400 300 L 400 318"/>
+    <animateMotion dur="2.2s" repeatCount="indefinite" path="M 390 740 L 410 740"/>
   </circle>
 
   <!-- DAO -> DB -->
   <circle r="3.5" fill="#10b981" filter="url(#glow-green)">
-    <animateMotion dur="2.2s" repeatCount="indefinite" path="M 400 320 L 400 300 L 500 300 L 500 285"/>
+    <animateMotion dur="2.2s" repeatCount="indefinite" path="M 400 680 L 400 695 L 485 695 L 485 720"/>
   </circle>
 
   <!-- DB -> CSV -->
   <circle r="3.5" fill="#a78bfa" filter="url(#glow-violet)">
-    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 500 240 L 500 205"/>
+    <animateMotion dur="1.8s" repeatCount="indefinite" path="M 485 760 L 485 780"/>
   </circle>
   
   <!-- Roles -> DB -->
   <circle r="3" fill="#a78bfa" filter="url(#glow-violet)">
-    <animateMotion dur="2.5s" repeatCount="indefinite" path="M 300 205 L 300 220 L 500 220 L 500 240"/>
+    <animateMotion dur="2.5s" repeatCount="indefinite" path="M 390 800 L 485 800 L 485 760"/>
   </circle>
 
   <!-- CSV -> Rmi -->
   <circle r="4" fill="#a78bfa" filter="url(#glow-violet)">
-    <animateMotion dur="2s" repeatCount="indefinite" path="M 500 160 L 500 140 L 400 140 L 400 125"/>
+    <animateMotion dur="2s" repeatCount="indefinite" path="M 485 820 L 485 835 L 400 835 L 400 850"/>
   </circle>
 
-  <!-- Rmi to Downstream (Top Right Fork) -->
+  <!-- Rmi to Downstream (Downwards Fork) -->
   <circle r="4.5" fill="#a78bfa" filter="url(#glow-violet)">
-    <animateMotion dur="2.5s" repeatCount="indefinite" path="M 480 102 L 540 102 L 540 85 L 600 85"/>
+    <animateMotion dur="2.5s" repeatCount="indefinite" path="M 400 890 L 400 930 L 320 930 L 320 995"/>
   </circle>
   <circle r="4.5" fill="#a78bfa" filter="url(#glow-violet)">
-    <animateMotion dur="2.5s" repeatCount="indefinite" path="M 480 102 L 540 102 L 540 145 L 600 145"/>
+    <animateMotion dur="2.5s" repeatCount="indefinite" path="M 400 890 L 400 930 L 480 930 L 480 995"/>
   </circle>
 
 
@@ -453,104 +453,104 @@ const SVG_TEMPLATE = `
   
   <!-- MSC -->
   <g filter="url(#shadow)">
-    <rect x="200" y="840" width="160" height="45" rx="6" fill="url(#gradient-sim)"/>
-    <text x="280" y="867" class="box-title" text-anchor="middle">msc-service</text>
+    <rect x="200" y="65" width="160" height="45" rx="6" fill="url(#gradient-sim)"/>
+    <text x="280" y="92" class="box-title" text-anchor="middle">msc-service</text>
   </g>
   
   <!-- SMSC -->
   <g filter="url(#shadow)">
-    <rect x="380" y="840" width="160" height="45" rx="6" fill="url(#gradient-sim)"/>
-    <text x="460" y="867" class="box-title" text-anchor="middle">smsc-service</text>
+    <rect x="380" y="65" width="160" height="45" rx="6" fill="url(#gradient-sim)"/>
+    <text x="460" y="92" class="box-title" text-anchor="middle">smsc-service</text>
   </g>
 
   <!-- PGW -->
   <g filter="url(#shadow)">
-    <rect x="60" y="840" width="160" height="45" rx="6" fill="url(#gradient-sim)"/>
-    <text x="140" y="867" class="box-title" text-anchor="middle">pgw-service</text>
+    <rect x="60" y="65" width="160" height="45" rx="6" fill="url(#gradient-sim)"/>
+    <text x="140" y="92" class="box-title" text-anchor="middle">pgw-service</text>
   </g>
 
   <!-- FTP -->
   <g filter="url(#shadow)">
-    <rect x="200" y="920" width="160" height="45" rx="6" fill="url(#gradient-ftp)"/>
-    <text x="280" y="947" class="box-title" text-anchor="middle">ftp-server:2121</text>
+    <rect x="200" y="145" width="160" height="45" rx="6" fill="url(#gradient-ftp)"/>
+    <text x="280" y="172" class="box-title" text-anchor="middle">ftp-server:2121</text>
   </g>
 
   <!-- FtpDownloader -->
   <g filter="url(#shadow)">
-    <rect x="320" y="720" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
-    <text x="400" y="747" class="box-title" text-anchor="middle">FtpDownloader</text>
+    <rect x="320" y="290" width="160" height="40" rx="6" fill="url(#gradient-med)"/>
+    <text x="400" y="315" class="box-title" text-anchor="middle">FtpDownloader</text>
   </g>
 
   <!-- Decoder -->
   <g filter="url(#shadow)">
-    <rect x="320" y="640" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
-    <text x="400" y="667" class="box-title" text-anchor="middle">Decoder</text>
+    <rect x="320" y="360" width="160" height="40" rx="6" fill="url(#gradient-med)"/>
+    <text x="400" y="385" class="box-title" text-anchor="middle">Decoder</text>
   </g>
 
   <!-- FtpProcessor -->
   <g filter="url(#shadow)">
-    <rect x="320" y="560" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
-    <text x="400" y="587" class="box-title" text-anchor="middle">FtpProcessor</text>
+    <rect x="320" y="430" width="160" height="40" rx="6" fill="url(#gradient-med)"/>
+    <text x="400" y="455" class="box-title" text-anchor="middle">FtpProcessor</text>
   </g>
 
   <!-- CDREnricher -->
   <g filter="url(#shadow)">
-    <rect x="320" y="480" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
-    <text x="400" y="507" class="box-title" text-anchor="middle">CDREnricher</text>
+    <rect x="320" y="500" width="160" height="40" rx="6" fill="url(#gradient-med)"/>
+    <text x="400" y="525" class="box-title" text-anchor="middle">CDREnricher</text>
   </g>
 
   <!-- CDRBuffer -->
   <g filter="url(#shadow)">
-    <rect x="320" y="400" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
-    <text x="400" y="427" class="box-title" text-anchor="middle">CDRBuffer</text>
+    <rect x="320" y="570" width="160" height="40" rx="6" fill="url(#gradient-med)"/>
+    <text x="400" y="595" class="box-title" text-anchor="middle">CDRBuffer</text>
   </g>
 
   <!-- CDR_DAO -->
   <g filter="url(#shadow)">
-    <rect x="320" y="320" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
-    <text x="400" y="347" class="box-title" text-anchor="middle">CDR_DAO</text>
+    <rect x="320" y="640" width="160" height="40" rx="6" fill="url(#gradient-med)"/>
+    <text x="400" y="665" class="box-title" text-anchor="middle">CDR_DAO</text>
   </g>
 
   <!-- CDRAggregator -->
   <g filter="url(#shadow)">
-    <rect x="220" y="240" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
-    <text x="300" y="267" class="box-title" text-anchor="middle">CDRAggregator</text>
+    <rect x="240" y="720" width="150" height="40" rx="6" fill="url(#gradient-med)"/>
+    <text x="315" y="745" class="box-title" text-anchor="middle">CDRAggregator</text>
   </g>
 
   <!-- NeonDB -->
   <g filter="url(#shadow)">
-    <rect x="420" y="240" width="160" height="45" rx="6" fill="url(#gradient-db)"/>
-    <text x="500" y="267" class="box-title" text-anchor="middle">NeonDB</text>
+    <rect x="410" y="720" width="150" height="40" rx="6" fill="url(#gradient-db)"/>
+    <text x="485" y="745" class="box-title" text-anchor="middle">NeonDB</text>
   </g>
 
   <!-- RolesHandler -->
   <g filter="url(#shadow)">
-    <rect x="220" y="160" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
-    <text x="300" y="187" class="box-title" text-anchor="middle">RolesHandler</text>
+    <rect x="240" y="780" width="150" height="40" rx="6" fill="url(#gradient-med)"/>
+    <text x="315" y="805" class="box-title" text-anchor="middle">RolesHandler</text>
   </g>
 
   <!-- CSVFormatter -->
   <g filter="url(#shadow)">
-    <rect x="420" y="160" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
-    <text x="500" y="187" class="box-title" text-anchor="middle">CSVFormatter</text>
+    <rect x="410" y="780" width="150" height="40" rx="6" fill="url(#gradient-med)"/>
+    <text x="485" y="805" class="box-title" text-anchor="middle">CSVFormatter</text>
   </g>
 
   <!-- RmiFileSender -->
   <g filter="url(#shadow)">
-    <rect x="320" y="80" width="160" height="45" rx="6" fill="url(#gradient-med)"/>
-    <text x="400" y="107" class="box-title" text-anchor="middle">RmiFileSender</text>
+    <rect x="320" y="850" width="160" height="40" rx="6" fill="url(#gradient-med)"/>
+    <text x="400" y="875" class="box-title" text-anchor="middle">RmiFileSender</text>
   </g>
 
   <!-- Downstream: fraud-service -->
   <g filter="url(#shadow)">
-    <rect x="600" y="65" width="150" height="40" rx="6" fill="url(#gradient-dest)"/>
-    <text x="675" y="89" class="box-title" text-anchor="middle">fraud-service</text>
+    <rect x="250" y="1000" width="140" height="40" rx="6" fill="url(#gradient-dest)"/>
+    <text x="320" y="1025" class="box-title" text-anchor="middle">fraud-service</text>
   </g>
 
   <!-- Downstream: billing-service -->
   <g filter="url(#shadow)">
-    <rect x="600" y="125" width="150" height="40" rx="6" fill="url(#gradient-dest)"/>
-    <text x="675" y="149" class="box-title" text-anchor="middle">billing-service</text>
+    <rect x="410" y="1000" width="140" height="40" rx="6" fill="url(#gradient-dest)"/>
+    <text x="480" y="1025" class="box-title" text-anchor="middle">billing-service</text>
   </g>
 
 </svg>

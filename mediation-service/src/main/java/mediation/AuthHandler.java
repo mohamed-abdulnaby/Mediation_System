@@ -73,6 +73,24 @@ public class AuthHandler implements HttpHandler {
                 stmt.execute("UPDATE users SET password_hash = '" + commonHash + "', role_id = " + viewerRoleId + " WHERE username = 'viewer'");
             }
 
+            // Deduplicate mediation_cdr_aggregated before adding unique constraint
+            if (getCount(stmt, "SELECT COUNT(*) FROM pg_constraint WHERE conname = 'unique_aggregate_window'") == 0) {
+                stmt.execute("""
+                    DELETE FROM mediation_cdr_aggregated a USING mediation_cdr_aggregated b 
+                    WHERE a.id < b.id 
+                      AND a.record_type = b.record_type 
+                      AND a.dial_a = b.dial_a 
+                      AND a.window_type = b.window_type 
+                      AND a.window_start = b.window_start
+                """);
+                stmt.execute("""
+                    ALTER TABLE mediation_cdr_aggregated 
+                    ADD CONSTRAINT unique_aggregate_window 
+                    UNIQUE (record_type, dial_a, window_type, window_start)
+                """);
+                System.out.println("[AuthHandler] Successfully deduplicated and added unique_aggregate_window constraint.");
+            }
+
             System.out.println("[AuthHandler] Successfully checked and initialized users/roles tables in database.");
         } catch (Exception e) {
             System.err.println("[AuthHandler] Warning: failed to auto-initialize users table: " + e.getMessage());
@@ -152,6 +170,7 @@ public class AuthHandler implements HttpHandler {
             Map<String, Object> user = users.get(0);
             String level = String.valueOf(user.getOrDefault("access_level", "read-only"));
 
+            pruneExpiredSessions();
             String token = UUID.randomUUID().toString();
             AuthFilter.activeSessions.put(token, new AuthFilter.UserSession(username, level));
 
@@ -163,7 +182,17 @@ public class AuthHandler implements HttpHandler {
         }
     }
 
+    private void pruneExpiredSessions() {
+        try {
+            long cutoff = System.currentTimeMillis() - 86400000L; // 24 hours
+            AuthFilter.activeSessions.entrySet().removeIf(entry -> entry.getValue().createdAt < cutoff);
+        } catch (Exception e) {
+            // ignore concurrent mod exceptions
+        }
+    }
+
     private void handleLogout(HttpExchange ex) throws IOException {
+        pruneExpiredSessions();
         String sessionId = getSessionIdFromCookie(ex);
         if (sessionId != null) {
             AuthFilter.activeSessions.remove(sessionId);
