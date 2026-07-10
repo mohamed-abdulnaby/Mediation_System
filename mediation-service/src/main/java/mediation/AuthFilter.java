@@ -29,15 +29,20 @@ public class AuthFilter implements HttpHandler {
     public void handle(HttpExchange ex) throws IOException {
         String path = ex.getRequestURI().getPath();
 
-        // 1. Static page exceptions
+        // 1. Cookie resolution
+        String sessionId = getSessionIdFromCookie(ex);
+        UserSession session = (sessionId != null) ? activeSessions.get(sessionId) : null;
+
+        // 2. Static page exceptions / Redirect bypass
         if (path.equals("/login.html")) {
+            if (session != null) {
+                ex.getResponseHeaders().add("Location", "/");
+                ex.sendResponseHeaders(302, -1);
+                return;
+            }
             next.handle(ex);
             return;
         }
-
-        // 2. Cookie resolution
-        String sessionId = getSessionIdFromCookie(ex);
-        UserSession session = (sessionId != null) ? activeSessions.get(sessionId) : null;
 
         if (session == null) {
             if (path.startsWith("/api/")) {

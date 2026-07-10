@@ -21,9 +21,9 @@ public class StaticHandler implements HttpHandler {
         }
 
         String path = ex.getRequestURI().getPath();
-        String file = "roles.html"; // default page
-        if (path.contains("dashboard")) {
-            file = "dashboard.html";
+        String file = "dashboard.html"; // default page
+        if (path.contains("roles")) {
+            file = "roles.html";
         } else if (path.contains("login")) {
             file = "login.html";
         }
